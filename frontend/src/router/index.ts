@@ -12,7 +12,8 @@ const router = createRouter({
     {
       path: '/wander',
       name: 'wander',
-      component: () => import('@/views/WanderPage.vue'),
+      component: () =>
+        import('@/views/Wander/index.vue'),
       meta: { showSidebar: true },
     },
     {
@@ -28,9 +29,9 @@ const router = createRouter({
       meta: { showSidebar: true },
     },
     {
-      path: '/later',
-      name: 'later',
-      component: () => import('@/views/LaterPage.vue'),
+      path: '/userCenter',
+      name: 'userCenter',
+      component: () => import('@/views/UserCenter/index.vue'),
       meta: { showSidebar: true },
     },
     {
@@ -38,12 +39,6 @@ const router = createRouter({
       name: 'settings',
       component: () => import('@/views/SettingsPage.vue'),
       meta: { showSidebar: true },
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/views/LoginPage.vue'),
-      meta: { showSidebar: false },
     },
   ],
 })

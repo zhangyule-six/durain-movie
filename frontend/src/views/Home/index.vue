@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import NoticeBoard from './componets/NoticeBoard.vue'
+import NewFilm from './componets/newFilm.vue'
+import FilmRank from './componets/FIlmRank.vue'
 </script>
 
 <template>
-  <div class=" h-full p-8">
+  <div class=" h-full p-8 flex flex-col gap-8">
     <NoticeBoard />
-    <p class="text-gray-500">欢迎来到 CineJoy 🎬</p>
+    <NewFilm />
+    <FilmRank />
+
   </div>
 </template>
