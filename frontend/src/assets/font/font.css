@@ -1,0 +1,6 @@
+@font-face {
+    font-family: 'din-round';
+    src: url('./bin-round.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+}
