@@ -25,8 +25,8 @@ interface MenuItem {
 const myWorldItems: MenuItem[] = [
   { name: 'home', label: '主页', icon: Home },
   { name: 'wander', label: '发现', icon: Compass },
-  { name: 'collection', label: '个人中心', icon: CirclePlay },
-  { name: 'later', label: '稍后再看', icon: Clock },
+  { name: 'userCenter', label: '个人中心', icon: CirclePlay },
+  { name: 'collection', label: '稍后再看', icon: Clock },
 ]
 
 const activeItem = computed(() => route.name as string || 'home')

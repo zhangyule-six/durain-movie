@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-
-const props = defineProps<{
-  apiBaseUrl?: string
-}>()
+import { ref } from 'vue'
+import { useSignup, useLogout } from '@/api/auth'
+import type { SignupPayload } from '@/api/types'
 
 const emit = defineEmits<{
   (e: 'signup-success', payload: { email: string }): void
@@ -15,10 +13,6 @@ const password = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
-
-const API_BASE_URL = computed(
-  () => props.apiBaseUrl || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
-)
 
 const validate = () => {
   if (!fullName.value || !email.value || !password.value || !confirmPassword.value) {
@@ -36,56 +30,30 @@ const validate = () => {
   return true
 }
 
-const signupRequest = async () => {
-  const res = await fetch(`${API_BASE_URL.value}/api/auth/signup`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
-      fullName: fullName.value,
-      email: email.value,
-      password: password.value,
-    }),
-  })
-
-  const data = await res.json().catch(() => ({} as any))
-
-  if (!res.ok) {
-    throw new Error(data.message || '注册失败')
-  }
-
-  return data as {
-    _id: string
-    fullName: string
-    email: string
-  }
-}
-
-const logoutAfterSignup = async () => {
-  await fetch(`${API_BASE_URL.value}/api/auth/logout`, {
-    method: 'POST',
-    credentials: 'include',
-  }).catch(() => {
-    // 忽略登出错误，只作为状态清理
-  })
-}
-
 const handleSubmit = async () => {
   if (!validate()) return
 
   loading.value = true
   errorMessage.value = ''
 
-  try {
-    const user = await signupRequest()
+  const payload: SignupPayload = {
+    username: fullName.value,
+    email: email.value,
+    password: password.value
+  }
 
-    await logoutAfterSignup()
+  const { execute, error } = useSignup(payload)
+
+  try {
+    const user = await execute()
+
+    await useLogout().execute().catch(() => {})
 
     emit('signup-success', {
-      email: user.email,
+      email: user.email
     })
   } catch (e: any) {
-    errorMessage.value = e?.message || '注册失败，请稍后重试'
+    errorMessage.value = error || e?.message || '注册失败，请稍后重试'
   } finally {
     loading.value = false
   }

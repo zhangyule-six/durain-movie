@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import Signup from './signup.vue'
+import { useLogin } from '@/api/auth'
 
 const props = defineProps<{
   visible: boolean
@@ -17,8 +18,6 @@ const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 const mode = ref<'login' | 'signup'>('login')
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 const close = () => {
   if (loading.value) return
@@ -45,51 +44,31 @@ const onSignupSuccess = (payload: { email: string }) => {
   mode.value = 'login'
 }
 
-const loginRequest = async () => {
-  const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({
-      email: email.value,
-      password: password.value,
-    }),
-  })
-
-  const data = await res.json().catch(() => ({} as any))
-
-  if (!res.ok) {
-    throw new Error(data.message || '登录失败')
-  }
-
-  return data as {
-    _id: string
-    fullName: string
-    email: string
-    profilePic?: string
-  }
-}
-
 const handleSubmit = async () => {
   if (!email.value || !password.value) {
     errorMessage.value = '请输入邮箱和密码'
     return
   }
 
+  const { execute, error } = useLogin({
+    email: email.value,
+    password: password.value
+  })
+
   loading.value = true
   errorMessage.value = ''
   successMessage.value = ''
 
   try {
-    const user = await loginRequest()
+    const user = await execute()
 
     emit('login-success', {
-      userName: user.fullName,
-      avatarUrl: user.profilePic,
+      userName: user.username,
+      avatarUrl: user.avatar
     })
     emit('update:visible', false)
-  } catch (e: any) {
-    errorMessage.value = e?.message || '登录失败，请稍后重试'
+  } catch (_) {
+    errorMessage.value = error || '登录失败，请稍后重试'
   } finally {
     loading.value = false
   }
@@ -173,7 +152,7 @@ const handleSubmit = async () => {
       </div>
 
       <div v-else>
-        <Signup :api-base-url="API_BASE_URL" @signup-success="onSignupSuccess" />
+        <Signup @signup-success="onSignupSuccess" />
 
         <div class="mt-3 text-right text-sm">
           <button class="text-blue-600 hover:underline" type="button" @click="switchToLogin">

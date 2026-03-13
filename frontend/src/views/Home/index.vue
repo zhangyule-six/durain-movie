@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import NoticeBoard from './componets/NoticeBoard.vue'
-import NewFilm from './componets/newFilm.vue'
+import NewFilm from './componets/NewFilm.vue'
 import FilmRank from './componets/FIlmRank.vue'
 </script>
 

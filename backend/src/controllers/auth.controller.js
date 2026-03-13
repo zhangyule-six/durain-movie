@@ -4,9 +4,9 @@ import bcrypt from "bcryptjs";
 import cloudinary from "../lib/cloudinary.js";
 
 export const signup = async (req, res) => {
-  const { fullName, email, password } = req.body;
+  const { username, email, password } = req.body;
   try {
-    if (!fullName || !email || !password) {
+    if (!username || !email || !password) {
       return res
         .status(400)
         .json({ message: "Please provide all required fields" });
@@ -17,10 +17,18 @@ export const signup = async (req, res) => {
         .status(400)
         .json({ message: "Password must be at least 6 characters long" });
     }
-    //查询用户是否存在
-    const user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: "User already exists" });
+
+    // 查询用户名/邮箱是否已存在
+    const [existingByEmail, existingByUsername] = await Promise.all([
+      User.findOne({ email }),
+      User.findOne({ username }),
+    ]);
+
+    if (existingByEmail) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+    if (existingByUsername) {
+      return res.status(400).json({ message: "Username already exists" });
     }
 
     //哈希密码
@@ -28,7 +36,7 @@ export const signup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt); //password和salt结合生成不可逆hash
 
     const newUser = new User({
-      fullName,
+      username,
       email,
       password: hashedPassword,
     });
@@ -40,8 +48,12 @@ export const signup = async (req, res) => {
 
       res.status(201).json({
         _id: newUser._id,
-        fullName: newUser.fullName,
+        username: newUser.username,
         email: newUser.email,
+        avatar: newUser.avatar,
+        bio: newUser.bio,
+        role: newUser.role,
+        stats: newUser.stats,
       });
     } else {
       res.status(400).json({ message: "Invalid user data" });
@@ -55,7 +67,7 @@ export const signup = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password");
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
@@ -70,9 +82,12 @@ export const login = async (req, res) => {
 
     res.status(200).json({
       _id: user._id,
-      fullName: user.fullName,
+      username: user.username,
       email: user.email,
-      profilePic: user.profilePic,
+      avatar: user.avatar,
+      bio: user.bio,
+      role: user.role,
+      stats: user.stats,
     });
   } catch (err) {
     console.log("Error in login:", err.message);
@@ -92,19 +107,21 @@ export const logout = (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { profilePic } = req.body;
+    // 兼容旧字段 profilePic（前端若还在用）
+    const avatarInput = req.body.avatar ?? req.body.profilePic;
     const userId = req.user._id;
 
-    if (!profilePic) {
+    if (!avatarInput) {
       return res
         .status(400)
-        .json({ message: "Please provide profile picture" });
+        .json({ message: "Please provide avatar" });
     }
-    const uploadResponse = await cloudinary.uploader.upload(profilePic); //图片上传云端
+
+    const uploadResponse = await cloudinary.uploader.upload(avatarInput); //图片上传云端
     //更新数据库中数据
     const updateUser = await User.findByIdAndUpdate(
       userId,
-      { profilePic: uploadResponse.secure_url },
+      { avatar: uploadResponse.secure_url },
       { new: true },
     );
 

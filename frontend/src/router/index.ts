@@ -12,26 +12,38 @@ const router = createRouter({
     {
       path: '/wander',
       name: 'wander',
-      component: () =>
-        import('@/views/Wander/index.vue'),
+      component: () => import('@/views/Wander/index.vue'),
       meta: { showSidebar: true },
     },
     {
-      path: '/collection',
-      name: 'collection',
-      component: () => import('@/views/CollectionPage.vue'),
+      path: '/filmDetail/:name',
+      name: 'filmDetail',
+      component: () => import('@/views/FilmDetail/index.vue'),
       meta: { showSidebar: true },
     },
     {
-      path: '/favorites',
-      name: 'favorites',
-      component: () => import('@/views/FavoritesPage.vue'),
+      path: '/newFilms',
+      name: 'newFilmMore',
+      component: () => import('@/views/NewFilmMore/index.vue'),
+      meta: { showSidebar: true },
+    },
+    {
+      path: '/rank',
+      name: 'rankMore',
+      component: () => import('@/views/RankMore/index.vue'),
+      meta: { showSidebar: true },
+    },
+    {
+      path: '/search',
+      name: 'searchResult',
+      component: () => import('@/views/SearchResult/index.vue'),
       meta: { showSidebar: true },
     },
     {
       path: '/userCenter',
       name: 'userCenter',
-      component: () => import('@/views/UserCenter/index.vue'),
+      component: () =>
+        import('@/views/UserCenter/index.vue'),
       meta: { showSidebar: true },
     },
     {

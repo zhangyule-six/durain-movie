@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import http from "http";
 
 import authRoutes from "./routes/auth.route.js";
+import movieRoutes from "./routes/movie.route.js";
 
 import path from "path";
 const app = express();
@@ -45,6 +46,7 @@ app.use(
 );
 
 app.use("/api/auth", authRoutes);
+app.use("/api/movie", movieRoutes);
 
 server.listen(PORT, () => {
   console.log("server is running on port " + PORT);

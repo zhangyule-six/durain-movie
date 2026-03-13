@@ -1,19 +1,49 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Search, Bell } from 'lucide-vue-next'
 import { NAvatar } from 'naive-ui'
 import Login from '../components/common/login.vue'
+import NotificationDrawer from './NotificationDrawer.vue'
+import { notificationMock, type NotificationItem } from './notification.config'
 
 const route = useRoute()
+const router = useRouter()
 const searchQuery = ref('')
-const notificationCount = ref() // 示例：3条未读通知
+const drawerVisible = ref(false)
+const notificationItems = ref<NotificationItem[]>([...notificationMock])
+const notificationCount = computed(
+  () => notificationItems.value.filter((i) => !i.isRead).length
+)
 const showSidebar = computed(() => route.meta.showSidebar !== false)
 
 const showLogin = ref(false)
 const isLogin = ref(false)
 const userName = ref('Guest')
 const avatarUrl = ref('https://github.com/shadcn.png')
+
+const handleSearch = () => {
+  const q = searchQuery.value.trim()
+  if (!q) return
+  router.push({ name: 'searchResult', query: { keyword: q } })
+}
+
+
+const toggleDrawer = () => {
+  drawerVisible.value = !drawerVisible.value
+}
+
+const markRead = (id: number) => {
+  const item = notificationItems.value.find((i) => i.id === id)
+  if (!item) return
+  item.isRead = true
+}
+
+const markUnread = (id: number) => {
+  const item = notificationItems.value.find((i) => i.id === id)
+  if (!item) return
+  item.isRead = false
+}
 
 const openLogin = () => {
   showLogin.value = true
@@ -42,6 +72,7 @@ const handleLoginSuccess = (payload: { userName: string; avatarUrl?: string }) =
         <Search class="w-5 h-5 text-gray-500 mr-3 shrink-0" />
         <input
           v-model="searchQuery"
+          @keyup.enter="handleSearch"
           type="text"
           placeholder="Find something cool to watch..."
           class="flex-1 outline-none text-gray-700 placeholder-gray-400 bg-transparent"
@@ -54,6 +85,7 @@ const handleLoginSuccess = (payload: { userName: string; avatarUrl?: string }) =
       <button
         class="relative w-12 h-12 bg-yellow-400 rounded-full border-2 border-[#0a0a0a] flex items-center justify-center hover:bg-yellow-500 transition-colors"
         style="box-shadow: 3px 3px 0 0 rgba(10, 10, 10, 1);"
+        @click="toggleDrawer"
       >
         <Bell class="w-6 h-6 text-black" />
         <!-- 通知徽章 -->
@@ -65,6 +97,13 @@ const handleLoginSuccess = (payload: { userName: string; avatarUrl?: string }) =
         </span>
       </button>
     </div>
+
+    <NotificationDrawer
+      v-model:show="drawerVisible"
+      :items="notificationItems"
+      @mark-read="markRead"
+      @mark-unread="markUnread"
+    />
 
 
     <div
