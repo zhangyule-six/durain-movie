@@ -8,7 +8,8 @@ import { useNoticeBoardRecommend } from './useNoticeBoardRecommend'
 import { useAddFavorite } from '@/api/user'
 
 const router = useRouter()
-const { loading, recommendedMovie, reload } = useNoticeBoardRecommend()
+const { loading, recommendedMovie, reload } =
+  useNoticeBoardRecommend()
 const recommended = computed(() => recommendedMovie.value)
 
 onMounted(() => {
