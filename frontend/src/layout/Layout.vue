@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useCheckAuth } from '@/api/auth'
+import { useUserStore } from '@/stores/useUser'
 import SideBar from './SideBar.vue'
 import Navigator from './Navigator.vue'
 
 const route = useRoute()
+const userStore = useUserStore()
 const showSidebar = computed(() => route.meta.showSidebar !== false)
+
+onMounted(() => {
+  useCheckAuth()
+    .execute()
+    .then((user) => userStore.setUser(user))
+    .catch(() => userStore.setUser(null))
+})
 </script>
 
 <template>

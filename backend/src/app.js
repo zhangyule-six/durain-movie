@@ -5,8 +5,11 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import http from "http";
 
-import authRoutes from "./routes/auth.route.js";
+import authRoutes from "./routes/user.route.js";
 import movieRoutes from "./routes/movie.route.js";
+import reviewRoutes from "./routes/review.route.js";
+import commentRoutes from "./routes/comment.route.js";
+import notificationRoutes from "./routes/notification.route.js";
 
 import path from "path";
 const app = express();
@@ -47,6 +50,12 @@ app.use(
 
 app.use("/api/auth", authRoutes);
 app.use("/api/movie", movieRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 server.listen(PORT, () => {
   console.log("server is running on port " + PORT);

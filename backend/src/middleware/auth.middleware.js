@@ -3,7 +3,9 @@ import User from "../models/user.model.js";
 
 export const protectRoute = async (req, res, next) => {
   try {
-    const token = req.cookies.jwt; //jwt是util中定义的cookie名字
+    // 优先从 Authorization Bearer 获取，否则使用 cookie
+    const bearer = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+    const token = bearer || req.cookies.jwt; //jwt是util中定义的cookie名字
     if (!token) {
       return res
         .status(401)

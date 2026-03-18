@@ -1,26 +1,81 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search, Bell } from 'lucide-vue-next'
 import { NAvatar } from 'naive-ui'
 import Login from '../components/common/login.vue'
 import NotificationDrawer from './NotificationDrawer.vue'
-import { notificationMock, type NotificationItem } from './notification.config'
+import {
+  type NotificationItem,
+  mapApiToNotificationItem,
+  useListNotifications,
+  useMarkNotificationRead,
+  useMarkNotificationUnread,
+} from '@/api/notifications'
+import { useUserStore } from '@/stores/useUser'
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const searchQuery = ref('')
 const drawerVisible = ref(false)
-const notificationItems = ref<NotificationItem[]>([...notificationMock])
+const notificationItems = ref<NotificationItem[]>([])
 const notificationCount = computed(
   () => notificationItems.value.filter((i) => !i.isRead).length
 )
 const showSidebar = computed(() => route.meta.showSidebar !== false)
 
 const showLogin = ref(false)
-const isLogin = ref(false)
-const userName = ref('Guest')
-const avatarUrl = ref('https://github.com/shadcn.png')
+const isLogin = computed(() => !!userStore.user)
+const userName = computed(() => userStore.user?.username ?? 'Guest')
+const avatarUrl = computed(() => userStore.user?.avatar ?? 'https://github.com/shadcn.png')
+
+const { execute: loadNotifications } = useListNotifications(false)
+
+const fetchNotifications = () => {
+  if (!userStore.user) {
+    notificationItems.value = []
+    return
+  }
+  loadNotifications()
+    .then((list) => {
+      notificationItems.value = (list ?? []).map(mapApiToNotificationItem)
+    })
+    .catch(() => {
+      notificationItems.value = []
+    })
+}
+
+const handleOnline = () => {
+  if (userStore.user) fetchNotifications()
+}
+
+const handleVisibilityChange = () => {
+  if (document.visibilityState === 'visible' && userStore.user) fetchNotifications()
+}
+
+onMounted(() => {
+  fetchNotifications()
+  window.addEventListener('online', handleOnline)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('online', handleOnline)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
+
+watch(
+  () => userStore.user?._id,
+  (id) => {
+    if (id) fetchNotifications()
+    else notificationItems.value = []
+  }
+)
+
+watch(drawerVisible, (open) => {
+  if (open && userStore.user) fetchNotifications()
+})
 
 const handleSearch = () => {
   const q = searchQuery.value.trim()
@@ -28,36 +83,41 @@ const handleSearch = () => {
   router.push({ name: 'searchResult', query: { keyword: q } })
 }
 
-
 const toggleDrawer = () => {
   drawerVisible.value = !drawerVisible.value
 }
 
-const markRead = (id: number) => {
-  const item = notificationItems.value.find((i) => i.id === id)
-  if (!item) return
-  item.isRead = true
+const markRead = (id: string) => {
+  const { execute } = useMarkNotificationRead(id)
+  execute()
+    .then(() => {
+      const item = notificationItems.value.find((i) => i.id === id)
+      if (item) item.isRead = true
+    })
+    .catch(() => {})
 }
 
-const markUnread = (id: number) => {
-  const item = notificationItems.value.find((i) => i.id === id)
-  if (!item) return
-  item.isRead = false
+const markUnread = (id: string) => {
+  const { execute } = useMarkNotificationUnread(id)
+  execute()
+    .then(() => {
+      const item = notificationItems.value.find((i) => i.id === id)
+      if (item) item.isRead = false
+    })
+    .catch(() => {})
 }
 
 const openLogin = () => {
   showLogin.value = true
 }
 
-const handleLoginSuccess = (payload: { userName: string; avatarUrl?: string }) => {
-  if (payload.userName) {
-      userName.value = payload.userName
-      isLogin.value = true
-  }
-  if (payload.avatarUrl) {
-    avatarUrl.value = payload.avatarUrl
+const handleLoginSuccess = (payload: { userName: string; avatarUrl?: string } | null) => {
+  if (!payload) {
+    showLogin.value = false
+    return
   }
   showLogin.value = false
+  fetchNotifications()
 }
 </script>
 
@@ -122,6 +182,11 @@ const handleLoginSuccess = (payload: { userName: string; avatarUrl?: string }) =
       </div>
     </div>
 
-    <Login v-model:visible="showLogin" @login-success="handleLoginSuccess" />
+    <Login
+      :visible="showLogin"
+      mode="login"
+      @update:visible="(v) => (showLogin = v)"
+      @login-success="handleLoginSuccess"
+    />
   </nav>
 </template>

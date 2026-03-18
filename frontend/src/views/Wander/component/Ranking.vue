@@ -22,7 +22,7 @@ const rankBadgeClass = (rank: number) => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col rounded-xl border-2 border-black bg-white/80">
+  <div class="h-[600px] flex flex-col rounded-xl border-2 border-black bg-white/80">
     <div class="p-4 border-b-2 border-black">
       <div class="text-lg font-extrabold">高分电影榜单</div>
       <div class="text-xs text-gray-500 mt-1">根据用户评分从高到低排序</div>
@@ -42,7 +42,7 @@ const rankBadgeClass = (rank: number) => {
         </div>
 
         <img
-          :src="item.movieImage"
+          :src="item.movieImage || 'https://picsum.photos/80/120?blur=2'"
           alt="poster"
           class="w-10 h-14 object-cover rounded-md border border-black shrink-0"
         />

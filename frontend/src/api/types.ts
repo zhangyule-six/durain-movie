@@ -74,8 +74,8 @@ export interface MaoyanSearchMovieItem {
  * 基础名称项（用于演员、导演、编剧等）
  */
 export interface PersonInfo {
-  name: string;
-  lang: string;
+  name: string
+  lang: string
 }
 
 export interface PersonDataWrapper {
@@ -86,39 +86,39 @@ export interface PersonDataWrapper {
  * 电影详细描述信息（对应返回结果中的内部 data 数组）
  */
 export interface MovieDetail {
-  poster: string;
-  name: string;
-  genre: string;
-  description: string;
-  language: string;
-  country: string;
-  lang: string;
+  poster: string
+  name: string
+  genre: string
+  description: string
+  language: string
+  country: string
+  lang: string
 }
 
 /**
  * 单条电影数据核心对象
  */
 export interface MovieItem {
-  originalName: string;
-  imdbVotes: number;
-  imdbRating: string;
-  rottenRating: string;
-  rottenVotes: number;
-  year: string;
-  imdbId: string;
-  alias: string;
-  doubanId: string;
-  type: string;
-  doubanRating: string;
-  doubanVotes: number;
-  duration: number;
-  episodes: number;
-  totalSeasons: number;
-  dateReleased: string;
-  data: MovieDetail[];       // 电影详情（海报、简介等）
-  writer: PersonDataWrapper[]; // 编剧列表
-  actor: PersonDataWrapper[];  // 演员列表
-  director: PersonDataWrapper[]; // 导演列表
+  originalName: string
+  imdbVotes: number
+  imdbRating: string
+  rottenRating: string
+  rottenVotes: number
+  year: string
+  imdbId: string
+  alias: string
+  doubanId: string
+  type: string
+  doubanRating: string
+  doubanVotes: number
+  duration: number
+  episodes: number
+  totalSeasons: number
+  dateReleased: string
+  data: MovieDetail[] // 电影详情（海报、简介等）
+  writer: PersonDataWrapper[] // 编剧列表
+  actor: PersonDataWrapper[] // 演员列表
+  director: PersonDataWrapper[] // 导演列表
 }
 
 /**
@@ -135,3 +135,60 @@ export interface MovieSearchResponse {
   data: MovieItem[]
 }
 
+// 本地 Movie 高分榜单
+export interface TopRankMovie {
+  id: string
+  title: string
+  poster: string
+  /** 用于 NRate 展示的评分，0-5 区间 */
+  rating: number
+  rank: number
+  /** 首页推荐使用的简介文案（可选），来自 Movie.summary */
+  description?: string
+}
+
+// Film detail & cast types (used by FilmDetail page and others)
+
+export interface FilmDetailBase {
+  /** 用于路由参数的唯一标识（路由 name） */
+  name: string
+  /** 展示用标题 */
+  displayName: string
+  poster: string
+  rating: number
+  ratingCount: number
+  year: number
+  duration: string
+  region: string
+  genres: string[]
+  summary: string
+}
+
+export interface CastMember {
+  id: number
+  name: string
+  role: string
+  avatar: string
+}
+
+export interface ReviewBuzz {
+  id: number
+  nickname: string
+  avatar: string
+  score: number
+  quote: string
+}
+
+export interface Recommendation {
+  name: string
+  displayName: string
+  poster: string
+  subtitle: string
+}
+
+export interface FilmDetailFull {
+  base: FilmDetailBase
+  cast: CastMember[]
+  buzz: ReviewBuzz[]
+  recommendations: Recommendation[]
+}
