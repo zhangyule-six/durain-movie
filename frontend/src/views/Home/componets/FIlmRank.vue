@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { StarIcon } from 'lucide-vue-next'
 import RankIcon from '@/assets/svg/rank.svg?component'
@@ -33,17 +33,13 @@ onMounted(() => {
 
 <template>
   <div class="w-full p-4">
-    <div
-      class="text-2xl font-bold w-full"
-      style="font-family: 'din-round', sans-serif"
-    >
+    <div class="text-2xl font-bold w-full" style="font-family: 'din-round', sans-serif">
       <div class="flex items-center justify-between">
         <div class="flex gap-2">
           <RankIcon class="w-8 h-8 text-[#e95111]" />
           <div>今日排行</div>
         </div>
         <button class="text-[#ecad25] text-sm" @click="gotoMore">更多</button>
-        
       </div>
     </div>
 
@@ -71,19 +67,11 @@ onMounted(() => {
           :alt="item.title"
           class="w-full h-[180px] object-cover rounded-[12px] border-2 border-[#0a0a0a]"
         />
-        <div
-          class="text-sm font-bold"
-          style="font-family: 'din-round', sans-serif"
-        >
+        <div class="text-sm font-bold" style="font-family: 'din-round', sans-serif">
           {{ item.title }}
         </div>
-        <div
-          class="text-sm font-bold flex items-center gap-1"
-          style="font-family: 'din-round', sans-serif"
-        >
-          <StarIcon
-            class="w-4 h-4 text-[#030303] fill-[#ecad25]"
-          />
+        <div class="text-sm font-bold flex items-center gap-1" style="font-family: 'din-round', sans-serif">
+          <StarIcon class="w-4 h-4 text-[#030303] fill-[#ecad25]" />
           {{ item.ratingText }}
         </div>
       </div>

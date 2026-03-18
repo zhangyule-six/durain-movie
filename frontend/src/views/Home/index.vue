@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import NoticeBoard from './componets/NoticeBoard.vue'
 import NewFilm from './componets/NewFilm.vue'
@@ -9,6 +9,7 @@ import { useAddFavorite } from '@/api/user'
 
 const router = useRouter()
 const { loading, recommendedMovie, reload } = useNoticeBoardRecommend()
+const recommended = computed(() => recommendedMovie.value)
 
 onMounted(() => {
   void reload()
@@ -17,7 +18,10 @@ onMounted(() => {
 const handleGotoDetail = () => {
   const title = recommendedMovie.value?.title
   if (!title) return
-  router.push({ name: 'filmDetail', params: { name: title } })
+  router.push({
+    name: 'filmDetail',
+    params: { name: title },
+  })
 }
 
 const handleToggleFavorite = async () => {
@@ -36,14 +40,14 @@ const handleToggleFavorite = async () => {
 <template>
   <div class="h-full p-8 flex flex-col gap-8">
     <NoticeBoard
-      :movie-title="recommendedMovie?.title"
-      :score="recommendedMovie?.rating"
-      :summary="recommendedMovie?.intro"
-      :movie-id="recommendedMovie?.movieId"
-      :loading="loading"
-      :image="recommendedMovie?.poster"
-      @gotoDetail="handleGotoDetail"
-      @toggleFavorite="handleToggleFavorite"
+      :movie-title="recommended?.title"
+      :score="recommended?.rating"
+      :summary="recommended?.intro"
+      :movie-id="recommended?.movieId"
+      :loading="loading.value"
+      :image="recommended?.poster"
+      @goto-detail="handleGotoDetail"
+      @toggle-favorite="handleToggleFavorite"
     />
     <NewFilm />
     <FilmRank />

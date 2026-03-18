@@ -16,11 +16,11 @@ export interface RequestResult<TData> {
   execute: () => Promise<TData>
 }
 
-// 开发环境使用本地后端，生产环境（Vercel）使用相对路径 `/api`
+// 开发环境使用本地后端；生产环境使用同域相对路径（各 API 已以 `/api/...` 开头）
 const API_BASE_URL =
   import.meta.env.DEV
     ? 'http://localhost:5001'
-    : '/api'
+    : ''
 
 export function useRequest<TData = unknown, TBody = unknown>(
   options: RequestOptions<TBody>

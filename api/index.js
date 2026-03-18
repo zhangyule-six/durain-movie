@@ -1,5 +1,15 @@
 import app from "../backend/src/app.js";
+import { connectDB } from "../backend/src/lib/db.js";
 
-// 直接导出 Express 实例，Vercel Node 运行时会将其作为处理函数调用
-export default app;
+export default async function handler(req, res) {
+  try {
+    await connectDB();
+    return app(req, res);
+  } catch (err) {
+    console.error("Vercel function init error:", err);
+    return res.status(500).json({
+      message: err?.message || "Serverless function init failed",
+    });
+  }
+}
 

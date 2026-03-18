@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import FlameIcon from '@/assets/svg/flame.svg?component'
 import { StarIcon } from 'lucide-vue-next'
+import defaultBg from '@/assets/images/background.png'
 
 const props = withDefaults(
   defineProps<{
@@ -17,7 +18,7 @@ const props = withDefaults(
     summary: '',
     movieId: '',
     loading: false,
-    image: '@/assets/images/background.png',
+    image: defaultBg,
   },
 )
 
