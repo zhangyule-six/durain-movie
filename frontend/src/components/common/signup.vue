@@ -53,7 +53,7 @@ const handleSubmit = async () => {
       email: user.email
     })
   } catch (e: any) {
-    errorMessage.value = error || e?.message || '注册失败，请稍后重试'
+    errorMessage.value =  e?.message || '注册失败，请稍后重试'
   } finally {
     loading.value = false
   }

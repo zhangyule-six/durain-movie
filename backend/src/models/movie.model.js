@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 const movieSchema = new mongoose.Schema(
   {
-    tmdbId: { type: String, unique: true, index: true }, // 外部API ID，用于数据同步
+    tmdbId: { type: String, index: true, sparse: true }, // 外部API ID，用于数据同步，可为空
     title: { type: String, required: true, index: "text" }, // 建立文本索引支持搜索
     originalTitle: String,
     poster: String,

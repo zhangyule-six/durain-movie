@@ -14,7 +14,7 @@ const reviewSchema = new mongoose.Schema(
       index: true,
     },
     score: { type: Number, required: true, min: 1, max: 10 }, // 用户给电影打的分
-    content: { type: String, required: true, minlength: 10 },
+    content: { type: String, required: true, minlength: 1},
     images: [String], // 影评配图（Cloudinary URL）
     tags: [String],
     // 社交互动

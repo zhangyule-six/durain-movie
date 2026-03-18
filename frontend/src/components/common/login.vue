@@ -1,15 +1,25 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import Signup from './signup.vue'
-import { useLogin } from '@/api/auth'
+import SwitchAccountModal from './SwitchAccountModal.vue'
+import { useLogin, useLogout, useCheckAuth } from '@/api/auth'
+import type { AuthUser } from '@/api/types'
+import { useUserStore } from '@/stores/useUser'
+import {
+  addAccount,
+  setActiveAccount,
+  removeAccount,
+  getAccounts,
+} from '@/lib/accountStorage'
 
 const props = defineProps<{
-  visible: boolean
+  visible: boolean,
+  mode: 'login' | 'signup'
 }>()
 
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
-  (e: 'login-success', payload: { userName: string; avatarUrl?: string }): void
+  (e: 'login-success', payload: { userName: string; avatarUrl?: string } | null): void
 }>()
 
 const email = ref('')
@@ -18,6 +28,10 @@ const loading = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 const mode = ref<'login' | 'signup'>('login')
+
+const currentUser = ref<AuthUser | null>(null)
+const userStore = useUserStore()
+const showSwitchModal = ref(false)
 
 const close = () => {
   if (loading.value) return
@@ -50,7 +64,7 @@ const handleSubmit = async () => {
     return
   }
 
-  const { execute, error } = useLogin({
+  const { execute } = useLogin({
     email: email.value,
     password: password.value
   })
@@ -60,24 +74,115 @@ const handleSubmit = async () => {
   successMessage.value = ''
 
   try {
-    const user = await execute()
+    const res = await execute() as AuthUser & { token?: string }
+    currentUser.value = res
+    userStore.setUser(res)
+    if (res.token) {
+      addAccount({
+        uid: res._id,
+        token: res.token,
+        username: res.username,
+        avatar: res.avatar,
+      })
+      setActiveAccount(res.token)
+    }
 
     emit('login-success', {
-      userName: user.username,
-      avatarUrl: user.avatar
+      userName: res.username,
+      avatarUrl: res.avatar
     })
     emit('update:visible', false)
   } catch (_) {
-    errorMessage.value = error || '登录失败，请稍后重试'
+    errorMessage.value =  '登录失败，请稍后重试'
   } finally {
     loading.value = false
   }
 }
+
+const refreshAuthState = async () => {
+  const { execute } = useCheckAuth()
+  try {
+    const user = await execute()
+    currentUser.value = user
+    userStore.setUser(user)
+  } catch {
+    currentUser.value = null
+    userStore.setUser(null)
+  }
+}
+
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      refreshAuthState()
+    }
+  },
+)
+
+const handleLogout = async () => {
+  const { execute } = useLogout()
+  loading.value = true
+  try {
+    await execute()
+    if (currentUser.value?._id) {
+      removeAccount(currentUser.value._id)
+    }
+    const remaining = getAccounts()
+    setActiveAccount(remaining[0]?.token ?? null)
+    if (remaining.length === 0) {
+      currentUser.value = null
+      userStore.setUser(null)
+      emit('login-success', null)
+    } else {
+      const user = await useCheckAuth().execute()
+      currentUser.value = user
+      userStore.setUser(user)
+      emit('login-success', { userName: user.username, avatarUrl: user.avatar })
+    }
+    emit('update:visible', false)
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleSwitchTo = async (payload: { uid: string; token: string }) => {
+  loading.value = true
+  try {
+    setActiveAccount(payload.token)
+    const user = await useCheckAuth().execute()
+    currentUser.value = user
+    userStore.setUser(user)
+    emit('login-success', { userName: user.username, avatarUrl: user.avatar })
+    showSwitchModal.value = false
+  } catch {
+    currentUser.value = null
+    userStore.setUser(null)
+    emit('login-success', null)
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleUseOtherAccount = async () => {
+  showSwitchModal.value = false
+  const { execute } = useLogout()
+  try {
+    await execute()
+  } catch {}
+  setActiveAccount(null)
+  currentUser.value = null
+  userStore.setUser(null)
+  emit('login-success', null)
+  email.value = ''
+  password.value = ''
+}
 </script>
 
 <template>
+  <!-- 未检测到已登录时，展示登录 / 注册表单 -->
   <div
-    v-if="props.visible"
+    v-if="props.visible && !currentUser"
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
     @click.self="close"
   >
@@ -162,5 +267,53 @@ const handleSubmit = async () => {
       </div>
     </div>
   </div>
-</template>
+  <!-- 已登录时，展示退出登录面板（切换账户时关闭本面板，仅显示 SwitchAccountModal） -->
+  <div
+    v-else-if="props.visible && currentUser && !showSwitchModal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+    @click.self="close"
+  >
+    <div
+      class="w-[400px] bg-white rounded-2xl border-[3px] border-[#0a0a0a] shadow-[6px_6px_0_0_#0a0a0a] px-6 py-5"
+    >
+      <div class="mb-3">
+        <h2 class="text-xl font-bold mb-1">已登录</h2>
+        <p class="text-sm text-gray-500">
+          当前账号：{{ currentUser.username }}
+        </p>
+      </div>
+      <div class="flex items-center justify-end gap-3 mt-2">
+        <button
+          type="button"
+          class="px-4 py-2 rounded-full border-2 border-[#0a0a0a] bg-white hover:bg-gray-100 transition-colors"
+          @click="close"
+        >
+          关闭
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 rounded-full border-2 border-[#0a0a0a] bg-white hover:bg-gray-100 transition-colors"
+          @click="showSwitchModal = true"
+        >
+          切换账户
+        </button>
+        <button
+          type="button"
+          class="px-5 py-2 rounded-full border-2 border-[#0a0a0a] bg-red-500 hover:bg-red-600 text-white font-bold transition-colors"
+          :disabled="loading"
+          @click="handleLogout"
+        >
+          {{ loading ? '退出中...' : '退出登录' }}
+        </button>
+      </div>
+    </div>
+  </div>
 
+  <SwitchAccountModal
+    :visible="showSwitchModal"
+    :current-user="currentUser"
+    @update:visible="(v) => (showSwitchModal = v)"
+    @switch-to="handleSwitchTo"
+    @use-other="handleUseOtherAccount"
+  />
+</template>

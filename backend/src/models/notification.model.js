@@ -12,8 +12,14 @@ const notificationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    type: { type: String, enum: ["like", "comment", "follow", "system"] },
-    refId: { type: mongoose.Schema.Types.ObjectId }, // 指向对应的影评或评论ID
+    type: { type: String, enum: ["like", "comment", "follow", "system"], required: true },
+    // 指向对应的实体（影评 / 评论 / 用户 / 系统）
+    refId: { type: mongoose.Schema.Types.ObjectId },
+    refType: {
+      type: String,
+      enum: ["review", "comment", "user", "system"],
+      required: true,
+    },
     isRead: { type: Boolean, default: false },
   },
   { timestamps: true },

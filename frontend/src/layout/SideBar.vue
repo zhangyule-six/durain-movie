@@ -26,7 +26,6 @@ const myWorldItems: MenuItem[] = [
   { name: 'home', label: '主页', icon: Home },
   { name: 'wander', label: '发现', icon: Compass },
   { name: 'userCenter', label: '个人中心', icon: CirclePlay },
-  { name: 'collection', label: '稍后再看', icon: Clock },
 ]
 
 const activeItem = computed(() => route.name as string || 'home')
@@ -68,17 +67,14 @@ function navigateTo(name: string) {
         </div>
       </nav>
     </div>
-
-
-    <!-- Spacer -->
     <div class="flex-1" />
 
-    <!-- Gears Button (Bottom) -->
-    <div class="flex items-center gap-3 px-4 py-3 bg-[#8ebbfd] rounded-2xl border-2 border-[#0a0a0a]"
+    <!-- TODO：设置功能暂时不开发 -->
+    <!-- <div class="flex items-center gap-3 px-4 py-3 bg-[#8ebbfd] rounded-2xl border-2 border-[#0a0a0a]"
       @click="navigateTo('settings')"
       style="box-shadow: 3px 3px 0 0 rgba(10, 10, 10, 1);">
       <Settings class="w-5 h-5" />
       <span class="text-sm font-semibold">设置</span>
-    </div>
+    </div> -->
   </aside>
 </template>

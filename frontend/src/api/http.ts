@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import type { Ref } from 'vue'
+import { getActiveToken } from '@/lib/accountStorage'
 
 export interface RequestOptions<TBody> {
   url: string
@@ -29,8 +30,8 @@ export function useRequest<TData = unknown, TBody = unknown>(
     error.value = null
 
     try {
-      let url =
-        options.url.startsWith('http') ? options.url : `${API_BASE_URL}${options.url}`
+      const isAbsoluteUrl = /^https?:\/\//i.test(options.url)
+      let url = isAbsoluteUrl ? options.url : `${API_BASE_URL}${options.url}`
 
       const method = options.method ?? 'GET'
       if (method === 'GET' && options.body && typeof options.body === 'object') {
@@ -44,12 +45,15 @@ export function useRequest<TData = unknown, TBody = unknown>(
       }
 
       const headers: Record<string, string> = {
-        ...(options.headers || {})
+        ...options.headers
       }
 
-      const isAbsoluteUrl = /^https?:\/\//i.test(url)
-      const credentials =
-        options.url.startsWith('http') || isAbsoluteUrl ? 'omit' : 'include'
+      const activeToken = getActiveToken()
+      const credentials: RequestCredentials =
+        activeToken || isAbsoluteUrl ? 'omit' : 'include'
+      if (activeToken) {
+        headers['Authorization'] = 'Bearer ' + activeToken
+      }
 
       const fetchInit: RequestInit = {
         method,

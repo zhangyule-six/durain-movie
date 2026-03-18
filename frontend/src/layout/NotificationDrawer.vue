@@ -9,7 +9,7 @@ import {
   NTabPane,
   NTabs
 } from 'naive-ui'
-import type { NotificationItem, NotificationType } from './notification.config'
+import type { NotificationItem, NotificationDisplayType } from '@/api/notifications'
 
 interface Props {
   show: boolean
@@ -23,11 +23,11 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (e: 'update:show', v: boolean): void
-  (e: 'mark-read', id: number): void
-  (e: 'mark-unread', id: number): void
+  (e: 'mark-read', id: string): void
+  (e: 'mark-unread', id: string): void
 }>()
 
-const activeType = ref<NotificationType>('like')
+const activeType = ref<NotificationDisplayType>('like')
 const activeReadTab = ref<'unread' | 'read'>('unread')
 
 const filteredSorted = computed(() => {
@@ -68,6 +68,11 @@ const formatTime = (ts: number) => {
         </NTabs>
 
         <div class="flex flex-col gap-3">
+          <NEmpty
+            v-if="!filteredSorted.length"
+            description="暂无通知"
+            class="py-8"
+          />
           <div
             v-for="item in filteredSorted"
             :key="item.id"
@@ -97,8 +102,19 @@ const formatTime = (ts: number) => {
                   {{ formatTime(item.createdAt) }}
                 </div>
               </div>
-              <div class="text-xs text-gray-700 mt-1 leading-snug">
-                {{ item.content }}
+              <div
+             
+                class="text-xs text-gray-500 mt-1 ml-1 leading-snug line-clamp-1"
+                :title="item.targetContent"
+              >
+                原内容：{{ item.targetContent }}
+              </div>
+              <div
+                v-if="item.content"
+                class="text-xs text-gray-700 mt-1 ml-1 leading-snug line-clamp-2"
+                :title="item.content"
+              >
+                {{ item.type === 'reply' ? '回复：' : '' }}{{ item.content }}
               </div>
               <div class="text-xs font-semibold mt-1 truncate">
                 {{ item.targetTitle }}
@@ -125,10 +141,6 @@ const formatTime = (ts: number) => {
             </div>
           </div>
 
-          <NEmpty
-            v-if="filteredSorted.length === 0"
-            description="暂无通知"
-          />
         </div>
       </div>
     </NDrawerContent>
