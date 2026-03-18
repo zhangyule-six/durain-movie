@@ -91,7 +91,7 @@ const handleToggleFavorite = () => {
           去了解
         </button>
         <button
-          class="w-[140px] h-[60px] rounded-[32px] bg-[#ffffff] border-4 border-[#000000] text-center flex items-center justify-center font-semibold disabled:opacity-60"
+          class="w-[140px] h-[60px] rounded-[32px] bg-[#ffffff] border-4 border-[#000000] text-center flex items-center justify-center font-semibold disabled:opacity-60 cursor-pointer"
           style="font-size: 18px; font-weight: 600; color: #000000"
           :disabled="props.loading"
           @click="handleToggleFavorite"
