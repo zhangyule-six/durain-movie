@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMessage } from 'naive-ui'
 import NoticeBoard from './componets/NoticeBoard.vue'
 import NewFilm from './componets/NewFilm.vue'
 import FilmRank from './componets/FIlmRank.vue'
@@ -8,6 +9,7 @@ import { useNoticeBoardRecommend } from './useNoticeBoardRecommend'
 import { useAddFavorite } from '@/api/user'
 
 const router = useRouter()
+const message = useMessage()
 const { loading, recommendedMovie, reload } = useNoticeBoardRecommend()
 
 onMounted(() => {
@@ -27,6 +29,7 @@ const handleToggleFavorite = async () => {
   try {
     const { execute } = useAddFavorite(movieId)
     await execute()
+    message.success('收藏成功')
   } catch {
     // 忽略收藏错误，保持首页体验流畅
   }
