@@ -121,7 +121,3 @@ pnpm type-check
 ## 部署提示（Vercel）
 
 生产环境下，前端会使用同域相对路径请求 `/api/...`（见 `frontend/src/api/http.ts`），配合 `vercel.json` 的重写规则将请求转发到 Serverless Function。
-
----
-
-如果你希望我再补一份 `backend/.env.example`（示例环境变量文件）和/或在根目录加“一键启动”脚本（同时启动前后端），我也可以继续帮你补齐。
