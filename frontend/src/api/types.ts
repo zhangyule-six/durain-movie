@@ -180,10 +180,10 @@ export interface ReviewBuzz {
 }
 
 export interface Recommendation {
-  name: string
-  displayName: string
+  id: string
+  title: string
   poster: string
-  subtitle: string
+  genres: string[]
 }
 
 export interface FilmDetailFull {

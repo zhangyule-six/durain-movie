@@ -3,7 +3,7 @@ import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import NoticeBoard from './componets/NoticeBoard.vue'
 import NewFilm from './componets/NewFilm.vue'
-import FilmRank from './componets/FilmRank.vue'
+import FilmRank from './componets/FIlmRank.vue'
 import { useNoticeBoardRecommend } from './useNoticeBoardRecommend'
 import { useAddFavorite } from '@/api/user'
 
