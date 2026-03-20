@@ -1,7 +1,11 @@
-const WMDB_BASE = "https://api.wmdb.tv/";
-const MAOYAN_BASE = "https://apis.netstart.cn/maoyan/";
 import Movie from "../models/movie.model.js";
 import mongoose from "mongoose";
+import {
+  crawlMaoyanOnInfoList,
+  crawlMaoyanSearch,
+  crawlMaoyanTopRated,
+  crawlWmdbSearch,
+} from "../crawler/index.js";
 
 function pickWmdbQuery(req) {
   const q = typeof req.query.q === "string" ? req.query.q : "";
@@ -24,136 +28,284 @@ function pickWmdbQuery(req) {
 
 export async function wmdbSearch(req, res) {
   try {
-    if (typeof fetch !== "function") {
-      return res
-        .status(500)
-        .json({ message: "Node 环境缺少 fetch，请使用 Node 18+ 运行后端" });
-    }
-
     const { q, actor, year, lang, limit, skip } = pickWmdbQuery(req);
     if (!q) return res.status(400).json({ message: "缺少参数 q" });
 
-    const url = new URL("/api/v1/movie/search", WMDB_BASE);
-    url.searchParams.set("q", q);
-    url.searchParams.set("limit", String(limit));
-    url.searchParams.set("skip", String(skip));
-    if (lang) url.searchParams.set("lang", lang);
-    if (actor) url.searchParams.set("actor", actor);
-    if (year) url.searchParams.set("year", year);
+    // 先从本地库检索；若结果不足，自动从上游拉取并入库，再次查询（缓存穿透）
+    const dbResult = await queryLocalWmdbLike({ q, actor, year, limit, skip });
+    if (dbResult.data.length >= Math.min(limit, 5)) {
+      return res.json(dbResult);
+    }
 
-    const upstream = await fetch(url.toString(), {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-
-    const text = await upstream.text();
-    let json = null;
+    // 触发一次采集（基于原查询条件），然后再读库返回
     try {
-      json = text ? JSON.parse(text) : {};
+      await crawlWmdbSearch({ q, actor, year, lang, limit, skip });
     } catch {
-      return res
-        .status(502)
-        .json({ message: "上游 WMDB 返回非 JSON", raw: text?.slice?.(0, 200) });
+      // 采集失败不阻断：继续返回本地已有数据
     }
 
-    if (!upstream.ok) {
-      return res.status(502).json({
-        message: "上游 WMDB 请求失败",
-        status: upstream.status,
-        upstream: json,
-      });
-    }
-
-    return res.json(json);
-  } catch (e) {
-    return res.status(500).json({ message: e?.message || "服务异常" });
-  }
-}
-
-async function proxyMaoyan(path, req, res) {
-  try {
-    if (typeof fetch !== "function") {
-      return res
-        .status(500)
-        .json({ message: "Node 环境缺少 fetch，请使用 Node 18+ 运行后端" });
-    }
-    const url = new URL(path, MAOYAN_BASE);
-    const upstream = await fetch(url.toString(), {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-    const text = await upstream.text();
-    let json = null;
-    try {
-      json = text ? JSON.parse(text) : null;
-    } catch {
-      return res
-        .status(502)
-        .json({ message: "上游返回非 JSON", raw: text?.slice?.(0, 200) });
-    }
-    if (!upstream.ok) {
-      return res
-        .status(502)
-        .json({
-          message: "上游请求失败",
-          status: upstream.status,
-          upstream: json,
-        });
-    }
-    return res.json(json);
+    const refreshed = await queryLocalWmdbLike({ q, actor, year, limit, skip });
+    return res.json(refreshed);
   } catch (e) {
     return res.status(500).json({ message: e?.message || "服务异常" });
   }
 }
 
 export async function maoyanTopRated(req, res) {
-  return proxyMaoyan("index/topRatedMovies", req, res);
+  try {
+    const limit = 50;
+    const list = await Movie.find({
+      $or: [
+        { "externalRatings.maoyan": { $gt: 0 } },
+        { maoyanId: { $exists: true, $ne: "" } },
+      ],
+    })
+      .sort({
+        "externalRatings.maoyan": -1,
+        createdAt: -1,
+      })
+      .limit(limit)
+      .select("title poster externalRatings maoyanId")
+      .lean();
+
+    if (list.length === 0) {
+      try {
+        await crawlMaoyanTopRated({ limit: 50 });
+      } catch {
+        // ignore
+      }
+    }
+
+    const refreshed = list.length
+      ? list
+      : await Movie.find({
+          $or: [
+            { "externalRatings.maoyan": { $gt: 0 } },
+            { maoyanId: { $exists: true, $ne: "" } },
+          ],
+        })
+          .sort({
+            "externalRatings.maoyan": -1,
+            createdAt: -1,
+          })
+          .limit(limit)
+          .select("title poster externalRatings maoyanId")
+          .lean();
+
+    return res.json({
+      title: "猫眼高分榜",
+      movieList: refreshed.map((m) => ({
+        movieId: Number(m.maoyanId) || 0,
+        poster: m.poster || "",
+        score:
+          typeof m.externalRatings?.maoyan === "number"
+            ? String(m.externalRatings.maoyan)
+            : "0",
+        name: m.title,
+      })),
+    });
+  } catch (e) {
+    return res.status(500).json({ message: e?.message || "服务异常" });
+  }
 }
 
 export async function maoyanOnInfoList(req, res) {
-  return proxyMaoyan("index/movieOnInfoList", req, res);
+  try {
+    const limit = 50;
+    const list = await Movie.find({
+      $or: [{ release: { $exists: true, $ne: "" } }, { releaseDate: { $exists: true } }],
+    })
+      .sort({ releaseDate: -1, createdAt: -1 })
+      .limit(limit)
+      .select("title poster externalRatings cast release maoyanId")
+      .lean();
+
+    if (list.length === 0) {
+      try {
+        await crawlMaoyanOnInfoList({ limit: 50 });
+      } catch {
+        // ignore
+      }
+    }
+
+    const refreshed = list.length
+      ? list
+      : await Movie.find({
+          $or: [{ release: { $exists: true, $ne: "" } }, { releaseDate: { $exists: true } }],
+        })
+          .sort({ releaseDate: -1, createdAt: -1 })
+          .limit(limit)
+          .select("title poster externalRatings cast release maoyanId")
+          .lean();
+
+    return res.json({
+      total: refreshed.length,
+      movieList: refreshed.map((m) => ({
+        id: Number(m.maoyanId) || 0,
+        img: m.poster || "",
+        nm: m.title,
+        sc: typeof m.externalRatings?.maoyan === "number" ? m.externalRatings.maoyan : 0,
+        star: Array.isArray(m.cast) ? m.cast.slice(0, 6).join(", ") : "",
+        rt: m.release || "",
+      })),
+    });
+  } catch (e) {
+    return res.status(500).json({ message: e?.message || "服务异常" });
+  }
 }
 
 export async function maoyanSearchMovies(req, res) {
   try {
-    if (typeof fetch !== "function") {
-      return res
-        .status(500)
-        .json({ message: "Node 环境缺少 fetch，请使用 Node 18+ 运行后端" });
-    }
     const keyword =
       typeof req.query.keyword === "string" ? req.query.keyword.trim() : "";
-    const ci = typeof req.query.ci !== "undefined" ? req.query.ci : 1;
-    const url = new URL("search/movies", MAOYAN_BASE);
-    if (keyword) url.searchParams.set("keyword", keyword);
-    url.searchParams.set("ci", String(ci));
+    const ci = parseInt(String(req.query.ci ?? "1"), 10) || 1;
 
-    const upstream = await fetch(url.toString(), {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-    const text = await upstream.text();
-    let json = null;
-    try {
-      json = text ? JSON.parse(text) : [];
-    } catch {
-      return res
-        .status(502)
-        .json({ message: "上游返回非 JSON", raw: text?.slice?.(0, 200) });
+    if (!keyword) return res.json([]);
+
+    const regex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    let list = await Movie.find({
+      $or: [{ title: regex }, { originalTitle: regex }],
+    })
+      .limit(30)
+      .select("title originalTitle poster externalRatings maoyanId catogary release")
+      .lean();
+
+    if (list.length === 0) {
+      try {
+        await crawlMaoyanSearch({ keyword, ci, limit: 50 });
+      } catch {
+        // ignore
+      }
+      list = await Movie.find({
+        $or: [{ title: regex }, { originalTitle: regex }],
+      })
+        .limit(30)
+        .select("title originalTitle poster externalRatings maoyanId catogary release")
+        .lean();
     }
-    if (!upstream.ok) {
-      return res
-        .status(502)
-        .json({
-          message: "上游请求失败",
-          status: upstream.status,
-          upstream: json,
-        });
-    }
-    return res.json(json);
+
+    return res.json(
+      list.map((m) => ({
+        id: Number(m.maoyanId) || 0,
+        poster: m.poster || "",
+        name: m.title,
+        version: "",
+        wish: "",
+        score:
+          typeof m.externalRatings?.maoyan === "number"
+            ? String(m.externalRatings.maoyan)
+            : "0",
+        ename: m.originalTitle || "",
+        catogary: m.catogary || "",
+        release: m.release || "",
+      })),
+    );
   } catch (e) {
     return res.status(500).json({ message: e?.message || "服务异常" });
   }
+}
+
+async function queryLocalWmdbLike({ q, actor, year, limit, skip }) {
+  const and = [];
+
+  if (q) {
+    const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    and.push({
+      $or: [{ title: regex }, { originalTitle: regex }, { summary: regex }],
+    });
+  }
+  if (actor) {
+    const regex = new RegExp(actor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    and.push({ cast: { $elemMatch: { $regex: regex } } });
+  }
+  if (year && /^\d{4}$/.test(String(year))) {
+    const y = parseInt(String(year), 10);
+    const start = new Date(Date.UTC(y, 0, 1));
+    const end = new Date(Date.UTC(y + 1, 0, 1));
+    and.push({ releaseDate: { $gte: start, $lt: end } });
+  }
+
+  const filter = and.length ? { $and: and } : {};
+  const total = await Movie.countDocuments(filter).exec();
+
+  const list = await Movie.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .select(
+      "title originalTitle poster summary genres language country duration doubanId imdbId externalRatings cast releaseDate",
+    )
+    .lean();
+
+  // 兼容前端的 MovieSearchResponse / MovieItem（字段缺失则给合理默认值）
+  const data = list.map((m) => {
+    const yearStr =
+      m.releaseDate instanceof Date && !Number.isNaN(m.releaseDate.valueOf())
+        ? String(m.releaseDate.getUTCFullYear())
+        : "";
+    const genreStr = Array.isArray(m.genres) ? m.genres.join(",") : "";
+
+    return {
+      originalName: m.originalTitle || m.title,
+      imdbVotes: 0,
+      imdbRating:
+        typeof m.externalRatings?.imdb === "number"
+          ? String(m.externalRatings.imdb)
+          : "0",
+      rottenRating: "0",
+      rottenVotes: 0,
+      year: yearStr,
+      imdbId: m.imdbId || "",
+      alias: "",
+      doubanId: m.doubanId || "",
+      type: genreStr,
+      doubanRating:
+        typeof m.externalRatings?.douban === "number"
+          ? String(m.externalRatings.douban)
+          : "0",
+      doubanVotes: 0,
+      duration: typeof m.duration === "number" ? m.duration : 0,
+      episodes: 0,
+      totalSeasons: 0,
+      dateReleased: yearStr ? `${yearStr}-01-01` : "",
+      data: [
+        {
+          poster: m.poster || "",
+          name: m.title,
+          genre: genreStr,
+          description: m.summary || "",
+          language: m.language || "",
+          country: m.country || "",
+          lang: "Cn",
+        },
+      ],
+      writer: [],
+      actor: [
+        {
+          data: (Array.isArray(m.cast) ? m.cast : []).slice(0, 20).map((name) => ({
+            name,
+            lang: "Cn",
+          })),
+        },
+      ],
+      director: [],
+    };
+  });
+
+  const totalPages = limit ? Math.ceil(total / limit) : 0;
+  const page = limit ? Math.floor(skip / limit) + 1 : 1;
+  const hasMore = skip + data.length < total;
+
+  return {
+    total,
+    page,
+    limit,
+    skip,
+    count: data.length,
+    totalPages,
+    hasMore,
+    data,
+  };
 }
 
 // 根据外部影片信息查找或创建 Movie 文档
