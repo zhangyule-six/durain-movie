@@ -251,10 +251,10 @@ const loadRecommendations = async () => {
     const res = await execute()
     if (currentFilm.value) {
       currentFilm.value.recommendations = (res || []).map((m) => ({
-        name: String(m.name || m.displayName || ''),
-        displayName: m.displayName,
+        id: String(m.id || ''),
+        title: String(m.title || '暂无名称'),
         poster: m.poster,
-        subtitle: m.subtitle,
+        genres: m.genres,
       }))
     }
   } catch (e) {
@@ -322,7 +322,7 @@ const handleWriteReview = () => {
 const gotoRecommendation = (rec: Recommendation) => {
   router.push({
     name: 'filmDetail',
-    params: { name: rec.name },
+    params: { name: rec.id },
   })
 }
 
