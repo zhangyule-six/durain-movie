@@ -98,7 +98,7 @@ onMounted(() => {
       </div>
 
       <!-- 右侧：高分电影榜单 -->
-      <div class="w-[340px] shrink-0 h-screen">
+      <div class="w-[340px] shrink-0 h-screen fixed right-20 top-20">
         <Ranking :data="rankingData" />
         <div
           v-if="topLoading"

@@ -89,7 +89,7 @@ function buildFilmDetailFromWmdb(
   const year =
     Number.parseInt(String(item.year || ''), 10) || 0
   const durationMin = Number(item.duration || 0) || 0
-  const duration = durationMin ? `${durationMin} 分钟` : '—'
+  const duration = durationMin ? `${durationMin / 60} 分钟` : '—'
   const region = String(detail?.country || '—')
   const genresRaw = String(detail?.genre || '').trim()
   const genres = genresRaw
@@ -436,7 +436,7 @@ const gotoHome = () => {
             <span>·</span>
             <span>{{ currentFilm.base.region }}</span>
             <span>·</span>
-            <span>{{ currentFilm.base.duration }}</span>
+            <span>{{ currentFilm.base.duration }} </span>
           </div>
 
           <div class="flex flex-wrap items-center gap-4">
