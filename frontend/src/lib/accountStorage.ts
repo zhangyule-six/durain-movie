@@ -68,3 +68,25 @@ export function removeAccount(uid: string): void {
 export function getAccounts(): StoredAccount[] {
   return getAccountStorage().accounts
 }
+
+export function updateStoredAccountProfile(
+  uid: string,
+  profile: { username?: string; avatar?: string },
+): void {
+  if (!uid) return
+  const storage = getAccountStorage()
+  const idx = storage.accounts.findIndex((a) => a.uid === uid)
+  if (idx < 0) return
+
+  const current = storage.accounts[idx]
+  if (!current) return
+  storage.accounts[idx] = {
+    uid: current.uid,
+    token: current.token,
+    username: current.username,
+    avatar: current.avatar,
+    ...(profile.username !== undefined ? { username: profile.username } : {}),
+    ...(profile.avatar !== undefined ? { avatar: profile.avatar } : {}),
+  }
+  setAccountStorage(storage)
+}
