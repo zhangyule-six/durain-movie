@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { NRate, NAvatar, NTag, NButton, NInput, NDivider, useMessage } from 'naive-ui'
 import type {
   FilmDetailFull,
-  Recommendation,
+  RecommendByGenresItem,
   CastMember,
 } from '@/api/types'
 import { useSearch } from '@/api/search'
@@ -89,7 +89,7 @@ function buildFilmDetailFromWmdb(
   const year =
     Number.parseInt(String(item.year || ''), 10) || 0
   const durationMin = Number(item.duration || 0) || 0
-  const duration = durationMin ? `${durationMin} 分钟` : '—'
+  const duration = durationMin ? `${durationMin/60} 分钟` : '—'
   const region = String(detail?.country || '—')
   const genresRaw = String(detail?.genre || '').trim()
   const genres = genresRaw
@@ -250,12 +250,7 @@ const loadRecommendations = async () => {
     )
     const res = await execute()
     if (currentFilm.value) {
-      currentFilm.value.recommendations = (res || []).map((m) => ({
-        name: String(m.name || m.displayName || ''),
-        displayName: m.displayName,
-        poster: m.poster,
-        subtitle: m.subtitle,
-      }))
+      currentFilm.value.recommendations = res || []
     }
   } catch (e) {
     // 推荐失败不影响主流程
@@ -319,10 +314,10 @@ const handleWriteReview = () => {
   }, 400)
 }
 
-const gotoRecommendation = (rec: Recommendation) => {
+const gotoRecommendation = (rec: RecommendByGenresItem) => {
   router.push({
     name: 'filmDetail',
-    params: { name: rec.name },
+    params: { name: rec.title },
   })
 }
 

@@ -50,16 +50,63 @@ export async function crawlMaoyanSearch({ keyword, ci = 1, limit = 50 } = {}) {
   return { total: sliced.length, saved: results.length };
 }
 
+/** WMDB 单次 search 通常最多返回约 100 条；需要大于 100 时自动用 skip 分页拉取 */
+const WMDB_SEARCH_PAGE_SIZE = 100;
+
 export async function crawlWmdbSearch(query) {
-  const json = await fetchWmdbSearch(query);
-  const list = Array.isArray(json?.data) ? json.data : [];
+  const requested = Math.max(
+    1,
+    Math.min(
+      parseInt(String(query?.limit ?? 50), 10) || 50,
+      5000,
+    ),
+  );
+  const skipStart = Math.max(parseInt(String(query?.skip ?? 0), 10) || 0, 0);
+
+  const collected = [];
+  let nextSkip = skipStart;
+  while (collected.length < requested) {
+    const remaining = requested - collected.length;
+    const pageLimit = Math.min(WMDB_SEARCH_PAGE_SIZE, remaining);
+    const json = await fetchWmdbSearch({
+      ...query,
+      limit: pageLimit,
+      skip: nextSkip,
+    });
+    const batch = Array.isArray(json?.data) ? json.data : [];
+    if (batch.length === 0) break;
+    collected.push(...batch);
+    nextSkip += batch.length;
+    if (batch.length < pageLimit) break;
+  }
+
+  const list = collected.slice(0, requested);
   const results = [];
+  let skippedNoTitle = 0;
+  let skippedOnSaveError = 0;
   for (const item of list) {
     const doc = normalizeFromWmdbItem(item);
-    if (!doc?.title) continue;
-    const saved = await upsertMovie(doc);
-    if (saved) results.push(saved);
+    if (!doc?.title) {
+      skippedNoTitle += 1;
+      continue;
+    }
+    try {
+      const saved = await upsertMovie(doc);
+      if (saved) results.push(saved);
+    } catch (e) {
+      // 单条写库失败不应中断整批回退，避免详情页在三方有数据时仍返回空。
+      skippedOnSaveError += 1;
+      console.error(
+        "[crawlWmdbSearch] skip one item due to save error:",
+        e?.message || e,
+      );
+    }
   }
-  return { total: list.length, saved: results.length };
+  return {
+    total: list.length,
+    saved: results.length,
+    skippedNoTitle,
+    skippedOnSaveError,
+  };
 }
 

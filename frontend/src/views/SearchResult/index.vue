@@ -1,21 +1,27 @@
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { StarIcon, ArrowLeft } from 'lucide-vue-next'
 import { useMaoyanSearchMovies } from '@/api/maoyanSearch'
+import type { MaoyanSearchMovieItem } from '@/api/types'
 
 const route = useRoute()
 const router = useRouter()
+const PAGE_LIMIT = 20
 
 const getKeyword = () => String(route.query.keyword || '').trim()
 
-const { data, error, loading, execute } = useMaoyanSearchMovies({
-  keyword: getKeyword(),
-  ci: 1,
-})
+const items = ref<MaoyanSearchMovieItem[]>([])
+const error = ref<string | null>(null)
+const loadingInitial = ref(false)
+const loadingMore = ref(false)
+const hasMore = ref(false)
+const offset = ref(0)
+const sentinelRef = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
 
 const list = computed(() =>
-  (data.value || []).map((m) => ({
+  (items.value || []).map((m) => ({
     id: m.id,
     title: m.name,
     image: m.poster,
@@ -30,15 +36,91 @@ const gotoDetail = (title: string) => {
   router.push({ name: 'filmDetail', params: { name: title } })
 }
 
-const runSearch = () => {
-  const keyword = getKeyword()
-  if (!keyword) return
-  // 更新 body 中 keyword 再执行
-  ;(execute as any).call(null)
+const mergeById = (
+  current: MaoyanSearchMovieItem[],
+  incoming: MaoyanSearchMovieItem[],
+) => {
+  const seen = new Set(current.map((item) => item.id))
+  const merged = [...current]
+  for (const item of incoming) {
+    if (seen.has(item.id)) continue
+    seen.add(item.id)
+    merged.push(item)
+  }
+  return merged
 }
 
-onMounted(() => {
-  runSearch()
+const fetchPage = async (nextOffset: number, append: boolean) => {
+  const keyword = getKeyword()
+  if (!keyword) {
+    items.value = []
+    hasMore.value = false
+    return
+  }
+  if (append && (loadingMore.value || !hasMore.value)) return
+
+  if (append) loadingMore.value = true
+  else loadingInitial.value = true
+  if (!append) error.value = null
+
+  const { execute } = useMaoyanSearchMovies({
+    keyword,
+    ci: 1,
+    offset: nextOffset,
+    limit: PAGE_LIMIT,
+  })
+  try {
+    const res = await execute()
+    const pageData = Array.isArray(res?.data) ? res.data : []
+    if (append) {
+      items.value = mergeById(items.value, pageData)
+    } else {
+      items.value = pageData
+    }
+    offset.value = nextOffset
+    hasMore.value = Boolean(res?.hasMore)
+  } catch (err: any) {
+    error.value = err?.message || '搜索失败'
+    if (!append) items.value = []
+  } finally {
+    if (append) loadingMore.value = false
+    else loadingInitial.value = false
+  }
+}
+
+const runSearch = async () => {
+  offset.value = 0
+  hasMore.value = false
+  await fetchPage(0, false)
+  await nextTick()
+  setupObserver()
+}
+
+const loadMore = async () => {
+  await fetchPage(offset.value + PAGE_LIMIT, true)
+}
+
+const setupObserver = () => {
+  if (observer) observer.disconnect()
+  if (!sentinelRef.value) return
+  observer = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0]
+      if (entry?.isIntersecting) {
+        loadMore()
+      }
+    },
+    { root: null, rootMargin: '120px', threshold: 0.1 },
+  )
+  observer.observe(sentinelRef.value)
+}
+
+onMounted(async () => {
+  await runSearch()
+})
+
+onUnmounted(() => {
+  if (observer) observer.disconnect()
 })
 
 watch(
@@ -65,7 +147,7 @@ watch(
       </div>
     </div>
 
-    <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div v-if="loadingInitial" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
       <div
         v-for="i in 10"
         :key="i"
@@ -106,6 +188,23 @@ watch(
           </div>
         </div>
       </div>
+    </div>
+
+    <div
+      ref="sentinelRef"
+      class="h-6"
+    />
+    <div
+      v-if="loadingMore"
+      class="text-sm text-gray-500 text-center"
+    >
+      正在加载更多...
+    </div>
+    <div
+      v-else-if="list.length && !hasMore"
+      class="text-sm text-gray-500 text-center"
+    >
+      没有更多了
     </div>
   </div>
 </template>

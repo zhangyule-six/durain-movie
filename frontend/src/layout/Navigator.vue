@@ -81,6 +81,7 @@ const handleSearch = () => {
   const q = searchQuery.value.trim()
   if (!q) return
   router.push({ name: 'searchResult', query: { keyword: q } })
+  searchQuery.value = ''
 }
 
 const toggleDrawer = () => {

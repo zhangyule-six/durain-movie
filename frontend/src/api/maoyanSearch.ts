@@ -1,12 +1,14 @@
 import { useRequest } from './http'
-import type { MaoyanSearchMovieItem } from './types'
+import type { MaoyanSearchPageResponse } from './types'
 
 export interface MaoyanSearchParams {
   keyword: string
   ci?: number
+  offset?: number
+  limit?: number
 }
 
-export type MaoyanSearchResponse = MaoyanSearchMovieItem[]
+export type MaoyanSearchResponse = MaoyanSearchPageResponse
 
 export function useMaoyanSearchMovies(params: MaoyanSearchParams) {
   return useRequest<MaoyanSearchResponse, MaoyanSearchParams>({

@@ -29,10 +29,12 @@ export async function fetchOnInfoList() {
   return await fetchJson(url.toString());
 }
 
-export async function fetchSearchMovies({ keyword, ci = 1 }) {
+export async function fetchSearchMovies({ keyword, ci = 1, offset, limit }) {
   const url = new URL("search/movies", MAOYAN_BASE);
   if (keyword) url.searchParams.set("keyword", String(keyword));
   url.searchParams.set("ci", String(ci));
+  if (Number.isFinite(offset)) url.searchParams.set("offset", String(offset));
+  if (Number.isFinite(limit)) url.searchParams.set("limit", String(limit));
   return await fetchJson(url.toString());
 }
 
