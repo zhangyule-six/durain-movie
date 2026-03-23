@@ -42,7 +42,7 @@ onMounted(() => {
           <RankIcon class="w-8 h-8 text-[#e95111]" />
           <div>今日排行</div>
         </div>
-        <button class="text-[#ecad25] text-sm" @click="gotoMore">更多</button>
+        <button class="text-[#ecad25] text-sm cursor-pointer" @click="gotoMore">更多 >></button>
         
       </div>
     </div>

@@ -29,6 +29,14 @@ export async function fetchOnInfoList() {
   return await fetchJson(url.toString());
 }
 
+export async function fetchComingList({ ci = 1, limit = 10 } = {}) {
+  const safeLimit = Math.min(Math.max(parseInt(String(limit), 10) || 10, 1), 50);
+  const url = new URL("index/comingList", MAOYAN_BASE);
+  url.searchParams.set("ci", String(ci));
+  url.searchParams.set("limit", String(safeLimit));
+  return await fetchJson(url.toString());
+}
+
 export async function fetchSearchMovies({ keyword, ci = 1, offset, limit }) {
   const url = new URL("search/movies", MAOYAN_BASE);
   if (keyword) url.searchParams.set("keyword", String(keyword));

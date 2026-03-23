@@ -1,6 +1,7 @@
 import { useRequest } from './http'
 import type {
   MovieOnInfoListResponse,
+  ComingListResponse,
   TopRankMovie,
   RecommendByGenresItem,
 } from './types'
@@ -8,6 +9,13 @@ import type {
 export function useMovieOnInfoList() {
   return useRequest<MovieOnInfoListResponse, undefined>({
     url: '/api/movie/maoyan/onInfoList',
+    method: 'GET',
+  })
+}
+
+export function useComingList(limit = 10, ci = 1) {
+  return useRequest<ComingListResponse, undefined>({
+    url: `/api/movie/maoyan/comingList?ci=${encodeURIComponent(String(ci))}&limit=${encodeURIComponent(String(limit))}`,
     method: 'GET',
   })
 }

@@ -622,7 +622,7 @@ const gotoHome = () => {
                     <span
                       class="text-emerald-600 font-semibold"
                     >
-                      {{ (item.score / 2).toFixed(1) }}
+                      {{ (item.score).toFixed(1) }}
                     </span>
                   </div>
                   <div

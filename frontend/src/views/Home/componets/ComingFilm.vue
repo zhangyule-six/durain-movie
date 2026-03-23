@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { StarIcon } from 'lucide-vue-next'
-import NewReleasesIcon from '@/assets/svg/new-releases.svg?component'
-import { useMovieOnInfoList } from '@/api/newfilm'
+import { StarIcon, Clock3 } from 'lucide-vue-next'
+import { useComingList } from '@/api/newfilm'
 
 const router = useRouter()
-const { data, error, loading, execute } = useMovieOnInfoList()
+const { data, error, loading, execute } = useComingList(10, 1)
 
 const list = computed(() => {
   const items = data.value?.movieList ?? []
@@ -15,12 +14,12 @@ const list = computed(() => {
     title: m.nm,
     image: m.img,
     ratingText: m.sc && m.sc > 0 ? Number(m.sc).toFixed(1) : '--',
-    description: m.star || '',
+    description: m.star || m.rt || '',
   }))
 })
 
 const gotoMore = () => {
-  router.push({ name: 'newFilmMore' })
+  router.push({ name: 'comingMore' })
 }
 
 const gotoDetail = (title: string) => {
@@ -40,11 +39,10 @@ onMounted(() => {
     >
       <div class="flex items-center justify-between">
         <div class="flex gap-2">
-          <NewReleasesIcon class="w-6 h-6 text-[#aaeadc]" />
-          <div>新鲜发布</div>
+          <Clock3 class="w-6 h-6 text-[#6aa6ff]" />
+          <div>待映列表</div>
         </div>
         <button class="text-[#ecad25] text-sm cursor-pointer" @click="gotoMore">更多 >></button>
-        
       </div>
     </div>
 

@@ -34,6 +34,12 @@ const router = createRouter({
       meta: { showSidebar: true },
     },
     {
+      path: '/coming',
+      name: 'comingMore',
+      component: () => import('@/views/ComingMore/index.vue'),
+      meta: { showSidebar: true },
+    },
+    {
       path: '/search',
       name: 'searchResult',
       component: () => import('@/views/SearchResult/index.vue'),

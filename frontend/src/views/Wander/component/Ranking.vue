@@ -22,7 +22,7 @@ const rankBadgeClass = (rank: number) => {
 </script>
 
 <template>
-  <div class="h-[600px] flex flex-col rounded-xl border-2 border-black bg-white/80">
+  <div class="h-[800px] flex flex-col rounded-xl border-2 border-black bg-white/80">
     <div class="p-4 border-b-2 border-black">
       <div class="text-lg font-extrabold">高分电影榜单</div>
       <div class="text-xs text-gray-500 mt-1">根据用户评分从高到低排序</div>
