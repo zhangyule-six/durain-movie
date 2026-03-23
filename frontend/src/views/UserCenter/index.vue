@@ -10,6 +10,7 @@ import {
   useRemoveFavorite,
 } from '@/api/user'
 import type { MyReviewItem, MyFavoriteItem } from '@/api/user'
+import { updateStoredAccountProfile } from '@/lib/accountStorage'
 
 const userStore = useUserStore()
 const router = useRouter()
@@ -128,6 +129,10 @@ const saveEdit = () => {
   execute()
     .then((updated) => {
       userStore.setUser(updated)
+      updateStoredAccountProfile(updated._id, {
+        username: updated.username,
+        avatar: updated.avatar,
+      })
       editing.value = false
       avatarDataUrl.value = null
       message.success('已更新个人信息')
