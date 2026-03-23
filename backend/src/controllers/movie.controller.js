@@ -1,6 +1,7 @@
 import Movie from "../models/movie.model.js";
 import mongoose from "mongoose";
 import {
+  fetchComingList,
   fetchOnInfoList,
   fetchSearchMovies,
   fetchTopRated,
@@ -91,6 +92,37 @@ export async function maoyanOnInfoList(req, res) {
         sc: typeof m?.sc === "number" ? m.sc : Number(m?.sc ?? 0) || 0,
         star: String(m?.star ?? ""),
         rt: String(m?.rt ?? ""),
+      })),
+    });
+  } catch (e) {
+    return res.status(500).json({ message: e?.message || "服务异常" });
+  }
+}
+
+export async function maoyanComingList(req, res) {
+  try {
+    const ci = parseInt(String(req.query.ci ?? "1"), 10) || 1;
+    const limit = Math.min(
+      Math.max(parseInt(String(req.query.limit ?? "10"), 10) || 10, 1),
+      50,
+    );
+
+    const json = await fetchComingList({ ci, limit });
+    const list = Array.isArray(json?.coming)
+      ? json.coming
+      : Array.isArray(json?.movieList)
+        ? json.movieList
+        : [];
+
+    return res.json({
+      total: list.length,
+      movieList: list.map((m) => ({
+        id: Number(m?.id ?? m?.movieId ?? 0) || 0,
+        img: String(m?.img ?? m?.poster ?? ""),
+        nm: String(m?.nm ?? m?.name ?? ""),
+        sc: typeof m?.sc === "number" ? m.sc : Number(m?.sc ?? 0) || 0,
+        star: String(m?.star ?? ""),
+        rt: String(m?.rt ?? m?.release ?? ""),
       })),
     });
   } catch (e) {

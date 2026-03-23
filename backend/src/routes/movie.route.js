@@ -3,6 +3,7 @@ import {
   wmdbSearch,
   maoyanTopRated,
   maoyanOnInfoList,
+  maoyanComingList,
   maoyanSearchMovies,
   ensureMovie,
   topRatedMovies,
@@ -14,6 +15,7 @@ const router = express.Router();
 router.get("/wmdb/search", wmdbSearch);
 router.get("/maoyan/topRated", maoyanTopRated);
 router.get("/maoyan/onInfoList", maoyanOnInfoList);
+router.get("/maoyan/comingList", maoyanComingList);
 router.get("/maoyan/search", maoyanSearchMovies);
 router.post("/ensure", ensureMovie);
 router.get("/top-rated", topRatedMovies);

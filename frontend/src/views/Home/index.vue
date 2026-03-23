@@ -5,6 +5,7 @@ import { useMessage } from 'naive-ui'
 import NoticeBoard from './componets/NoticeBoard.vue'
 import NewFilm from './componets/NewFilm.vue'
 import FilmRank from './componets/FIlmRank.vue'
+import ComingFilm from './componets/ComingFilm.vue'
 import { useNoticeBoardRecommend } from './useNoticeBoardRecommend'
 import { useAddFavorite } from '@/api/user'
 
@@ -50,5 +51,6 @@ const handleToggleFavorite = async () => {
     />
     <NewFilm />
     <FilmRank />
+    <ComingFilm />
   </div>
 </template>

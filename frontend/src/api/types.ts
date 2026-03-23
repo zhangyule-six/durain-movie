@@ -58,6 +58,20 @@ export interface MovieOnInfoListResponse {
   movieList: MovieOnInfoListItem[]
 }
 
+export interface ComingListItem {
+  id: number
+  img: string
+  nm: string
+  sc: number
+  star: string
+  rt: string
+}
+
+export interface ComingListResponse {
+  total: number
+  movieList: ComingListItem[]
+}
+
 export interface MaoyanSearchMovieItem {
   id: number
   poster: string

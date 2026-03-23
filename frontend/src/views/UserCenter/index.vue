@@ -262,7 +262,7 @@ const handleAvatarChange = (e: Event) => {
                   :size="18"
                 />
                 <span class="text-xs text-gray-600 font-semibold">
-                  {{ (item.score / 2).toFixed(1) }} 分
+                  {{ (item.score).toFixed(1) }} 分
                 </span>
               </div>
 
