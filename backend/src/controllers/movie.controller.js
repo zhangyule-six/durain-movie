@@ -1,11 +1,11 @@
 import Movie from "../models/movie.model.js";
 import mongoose from "mongoose";
 import {
-  crawlMaoyanOnInfoList,
-  crawlMaoyanSearch,
-  crawlMaoyanTopRated,
-  crawlWmdbSearch,
-} from "../crawler/index.js";
+  fetchOnInfoList,
+  fetchSearchMovies,
+  fetchTopRated,
+} from "../crawler/sources/maoyan.js";
+import { crawlWmdbSearch } from "../crawler/index.js";
 
 function pickWmdbQuery(req) {
   const q = typeof req.query.q === "string" ? req.query.q : "";
@@ -31,21 +31,26 @@ export async function wmdbSearch(req, res) {
     const { q, actor, year, lang, limit, skip } = pickWmdbQuery(req);
     if (!q) return res.status(400).json({ message: "缺少参数 q" });
 
-    // 先从本地库检索；若结果不足，自动从上游拉取并入库，再次查询（缓存穿透）
-    const dbResult = await queryLocalWmdbLike({ q, actor, year, limit, skip });
-    if (dbResult.data.length >= Math.min(limit, 5)) {
-      return res.json(dbResult);
+    let dbResult = await queryLocalWmdbLike({ q, actor, year, limit, skip });
+
+    if (dbResult.total === 0) {
+      const syncLimit = Math.min(Math.max(limit, 10), 50);
+      try {
+        await crawlWmdbSearch({
+          q,
+          actor,
+          year,
+          lang,
+          limit: syncLimit,
+          skip,
+        });
+        dbResult = await queryLocalWmdbLike({ q, actor, year, limit, skip });
+      } catch (e) {
+        console.error("wmdbSearch WMDB fallback failed:", e?.message || e);
+      }
     }
 
-    // 触发一次采集（基于原查询条件），然后再读库返回
-    try {
-      await crawlWmdbSearch({ q, actor, year, lang, limit, skip });
-    } catch {
-      // 采集失败不阻断：继续返回本地已有数据
-    }
-
-    const refreshed = await queryLocalWmdbLike({ q, actor, year, limit, skip });
-    return res.json(refreshed);
+    return res.json(dbResult);
   } catch (e) {
     return res.status(500).json({ message: e?.message || "服务异常" });
   }
@@ -53,55 +58,18 @@ export async function wmdbSearch(req, res) {
 
 export async function maoyanTopRated(req, res) {
   try {
-    const limit = 50;
-    const list = await Movie.find({
-      $or: [
-        { "externalRatings.maoyan": { $gt: 0 } },
-        { maoyanId: { $exists: true, $ne: "" } },
-      ],
-    })
-      .sort({
-        "externalRatings.maoyan": -1,
-        createdAt: -1,
-      })
-      .limit(limit)
-      .select("title poster externalRatings maoyanId")
-      .lean();
-
-    if (list.length === 0) {
-      try {
-        await crawlMaoyanTopRated({ limit: 50 });
-      } catch {
-        // ignore
-      }
-    }
-
-    const refreshed = list.length
-      ? list
-      : await Movie.find({
-          $or: [
-            { "externalRatings.maoyan": { $gt: 0 } },
-            { maoyanId: { $exists: true, $ne: "" } },
-          ],
-        })
-          .sort({
-            "externalRatings.maoyan": -1,
-            createdAt: -1,
-          })
-          .limit(limit)
-          .select("title poster externalRatings maoyanId")
-          .lean();
-
+    // 直连猫眼保持上游数组顺序；仅做字段映射，不再基于 Mongo/时间重排。
+    const json = await fetchTopRated();
+    const list = Array.isArray(json?.movieList)
+      ? json.movieList
+      : [];
     return res.json({
       title: "猫眼高分榜",
-      movieList: refreshed.map((m) => ({
-        movieId: Number(m.maoyanId) || 0,
-        poster: m.poster || "",
-        score:
-          typeof m.externalRatings?.maoyan === "number"
-            ? String(m.externalRatings.maoyan)
-            : "0",
-        name: m.title,
+      movieList: list.map((m) => ({
+        movieId: Number(m?.movieId ?? m?.id) || 0,
+        poster: String(m?.poster ?? m?.img ?? ""),
+        score: String(m?.score ?? m?.sc ?? 0),
+        name: String(m?.name ?? m?.nm ?? ""),
       })),
     });
   } catch (e) {
@@ -111,42 +79,18 @@ export async function maoyanTopRated(req, res) {
 
 export async function maoyanOnInfoList(req, res) {
   try {
-    const limit = 50;
-    const list = await Movie.find({
-      $or: [{ release: { $exists: true, $ne: "" } }, { releaseDate: { $exists: true } }],
-    })
-      .sort({ releaseDate: -1, createdAt: -1 })
-      .limit(limit)
-      .select("title poster externalRatings cast release maoyanId")
-      .lean();
-
-    if (list.length === 0) {
-      try {
-        await crawlMaoyanOnInfoList({ limit: 50 });
-      } catch {
-        // ignore
-      }
-    }
-
-    const refreshed = list.length
-      ? list
-      : await Movie.find({
-          $or: [{ release: { $exists: true, $ne: "" } }, { releaseDate: { $exists: true } }],
-        })
-          .sort({ releaseDate: -1, createdAt: -1 })
-          .limit(limit)
-          .select("title poster externalRatings cast release maoyanId")
-          .lean();
-
+    // 直连猫眼保持上游数组顺序；仅做字段映射，不再基于 Mongo/时间重排。
+    const json = await fetchOnInfoList();
+    const list = Array.isArray(json?.movieList) ? json.movieList : [];
     return res.json({
-      total: refreshed.length,
-      movieList: refreshed.map((m) => ({
-        id: Number(m.maoyanId) || 0,
-        img: m.poster || "",
-        nm: m.title,
-        sc: typeof m.externalRatings?.maoyan === "number" ? m.externalRatings.maoyan : 0,
-        star: Array.isArray(m.cast) ? m.cast.slice(0, 6).join(", ") : "",
-        rt: m.release || "",
+      total: list.length,
+      movieList: list.map((m) => ({
+        id: Number(m?.id ?? 0) || 0,
+        img: String(m?.img ?? m?.poster ?? ""),
+        nm: String(m?.nm ?? m?.name ?? ""),
+        sc: typeof m?.sc === "number" ? m.sc : Number(m?.sc ?? 0) || 0,
+        star: String(m?.star ?? ""),
+        rt: String(m?.rt ?? ""),
       })),
     });
   } catch (e) {
@@ -159,47 +103,50 @@ export async function maoyanSearchMovies(req, res) {
     const keyword =
       typeof req.query.keyword === "string" ? req.query.keyword.trim() : "";
     const ci = parseInt(String(req.query.ci ?? "1"), 10) || 1;
+    const offset = Math.max(parseInt(String(req.query.offset ?? "0"), 10) || 0, 0);
+    const limit = Math.min(
+      Math.max(parseInt(String(req.query.limit ?? "20"), 10) || 20, 1),
+      50,
+    );
 
-    if (!keyword) return res.json([]);
-
-    const regex = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-    let list = await Movie.find({
-      $or: [{ title: regex }, { originalTitle: regex }],
-    })
-      .limit(30)
-      .select("title originalTitle poster externalRatings maoyanId catogary release")
-      .lean();
-
-    if (list.length === 0) {
-      try {
-        await crawlMaoyanSearch({ keyword, ci, limit: 50 });
-      } catch {
-        // ignore
-      }
-      list = await Movie.find({
-        $or: [{ title: regex }, { originalTitle: regex }],
-      })
-        .limit(30)
-        .select("title originalTitle poster externalRatings maoyanId catogary release")
-        .lean();
+    if (!keyword) {
+      return res.json({
+        offset,
+        limit,
+        count: 0,
+        hasMore: false,
+        data: [],
+      });
     }
 
-    return res.json(
-      list.map((m) => ({
-        id: Number(m.maoyanId) || 0,
-        poster: m.poster || "",
-        name: m.title,
+    // 直连猫眼保持上游返回顺序；仅做字段映射，不再基于 Mongo/正则重排。
+    const json = await fetchSearchMovies({ keyword, ci, offset, limit });
+    const list = Array.isArray(json)
+      ? json
+      : Array.isArray(json?.movies)
+        ? json.movies
+        : [];
+
+    const data = list.map((m) => ({
+        id: Number(m?.id ?? 0) || 0,
+        poster: String(m?.poster ?? m?.img ?? ""),
+        name: String(m?.name ?? m?.nm ?? ""),
         version: "",
         wish: "",
         score:
-          typeof m.externalRatings?.maoyan === "number"
-            ? String(m.externalRatings.maoyan)
-            : "0",
-        ename: m.originalTitle || "",
-        catogary: m.catogary || "",
-        release: m.release || "",
-      })),
-    );
+          String(m?.score ?? m?.sc ?? 0),
+        ename: String(m?.ename ?? m?.originalTitle ?? ""),
+        catogary: String(m?.catogary ?? ""),
+        release: String(m?.release ?? m?.rt ?? ""),
+      }));
+
+    return res.json({
+      offset,
+      limit,
+      count: data.length,
+      hasMore: data.length >= limit,
+      data,
+    });
   } catch (e) {
     return res.status(500).json({ message: e?.message || "服务异常" });
   }
@@ -233,7 +180,7 @@ async function queryLocalWmdbLike({ q, actor, year, limit, skip }) {
     .skip(skip)
     .limit(limit)
     .select(
-      "title originalTitle poster summary genres language country duration doubanId imdbId externalRatings cast releaseDate",
+      "title originalTitle poster summary genres filmLanguage country duration doubanId imdbId externalRatings cast releaseDate",
     )
     .lean();
 
@@ -274,7 +221,7 @@ async function queryLocalWmdbLike({ q, actor, year, limit, skip }) {
           name: m.title,
           genre: genreStr,
           description: m.summary || "",
-          language: m.language || "",
+          language: m.filmLanguage || m.language || "",
           country: m.country || "",
           lang: "Cn",
         },
@@ -317,22 +264,40 @@ export async function ensureMovie(req, res) {
       return res.status(400).json({ message: "缺少影片标题 title" });
     }
 
-    const query = {
-      title,
-    };
-    if (year) {
-      query.releaseDate = new Date(`${year}-01-01`);
-    }
+    const y = year ? parseInt(String(year), 10) : NaN;
+    const hasYear = Number.isFinite(y) && y > 0;
+    const genreList = Array.isArray(genres) ? genres : [];
 
     let movie = await Movie.findOne({ title }).exec();
 
-    if (!movie) {
-      movie = await Movie.create({
-        title,
-        poster: poster || "",
-        summary: summary || "",
-        genres: Array.isArray(genres) ? genres : [],
-      });
+    if (movie) {
+      movie.poster = poster || movie.poster || "";
+      movie.summary = summary || movie.summary || "";
+      movie.genres = genreList.length ? genreList : movie.genres || [];
+      if (
+        hasYear &&
+        (!(movie.releaseDate instanceof Date) ||
+          Number.isNaN(movie.releaseDate.valueOf()))
+      ) {
+        movie.releaseDate = new Date(`${y}-01-01`);
+      }
+      await movie.save();
+    } else {
+      movie = await Movie.findOneAndUpdate(
+        { title },
+        {
+          $set: {
+            poster: poster || "",
+            summary: summary || "",
+            genres: genreList,
+          },
+          $setOnInsert: {
+            title,
+            ...(hasYear ? { releaseDate: new Date(`${y}-01-01`) } : {}),
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      ).exec();
     }
 
     return res.json({

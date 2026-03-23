@@ -2,7 +2,7 @@ import { useRequest } from './http'
 import type {
   MovieOnInfoListResponse,
   TopRankMovie,
-  Recommendation,
+  RecommendByGenresItem,
 } from './types'
 
 export function useMovieOnInfoList() {
@@ -20,7 +20,7 @@ export function useTopRatedMovies(limit = 10) {
 }
 
 export function useRecommendByGenres(movieId: string, genres: string[]) {
-  return useRequest<Recommendation[], { genres: string[] }>({
+  return useRequest<RecommendByGenresItem[], { genres: string[] }>({
     url: `/api/movie/${encodeURIComponent(movieId)}/recommend-by-genres`,
     method: 'POST',
     body: { genres },

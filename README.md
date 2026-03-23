@@ -78,7 +78,10 @@ Vite 默认地址通常是：`http://localhost:5173`
 
 ## 电影数据来源（采集入库）
 
-项目已支持把“原三方接口返回的 JSON 数据”**采集并写入 MongoDB**，然后 `/api/movie/wmdb/*`、`/api/movie/maoyan/*` 这些接口会 **优先读本地库**；当库里数据不足时，会自动触发一次采集并回填（失败则返回已有数据）。
+项目支持把三方 JSON 数据**采集并写入 MongoDB**。当前接口行为如下：
+
+- `/api/movie/wmdb/search`：**只读 MongoDB**，请求时不会触发 WMDB 采集；需要先运行 `pnpm run crawl:movies -- --task wmdb:search ...` 灌库。
+- `/api/movie/maoyan/*`：**每次请求直连猫眼上游接口**，保证榜单/搜索的排序语义；**响应不落库**（猫眼数据不通过接口写入 MongoDB）。若仅需库内 WMDB 形态数据，请使用 `wmdb:search` 采集；猫眼 CLI 采集为可选离线脚本。
 
 ### 采集命令
 
@@ -97,7 +100,8 @@ pnpm run crawl:movies -- --task maoyan:onInfoList --limit 50
 pnpm run crawl:movies -- --task maoyan:search --keyword "周星驰" --ci 1 --limit 50
 
 # WMDB 搜索入库（需要 q，可选 actor/year/lang/skip）
-pnpm run crawl:movies -- --task wmdb:search --q "霸王别姬" --limit 10
+# `--limit` 最大约 5000；大于 100 时脚本会自动按 skip 分页请求 WMDB（上游单次约 100 条）
+pnpm run crawl:movies -- --task wmdb:search --q "我" --limit 300
 ```
 
 ## 构建与预览
@@ -122,7 +126,9 @@ pnpm preview
 ### 3) 采集后接口仍然没数据
 
 - 先跑一次采集命令确认 MongoDB 中 `movies` 集合已有数据
-- 再访问接口：`/api/movie/maoyan/topRated`、`/api/movie/maoyan/onInfoList`、`/api/movie/wmdb/search?q=...`
+- 再访问接口：
+  - WMDB：`/api/movie/wmdb/search?q=...`
+  - 猫眼：通常无需灌库即可返回最新榜单（如想离线缓存再跑对应 `maoyan:*` 采集命令）
 
 ## 部署提示（Vercel）
 

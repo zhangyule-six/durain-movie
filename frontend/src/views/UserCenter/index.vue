@@ -3,7 +3,12 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { NTabs, NTabPane, NRate, NAvatar, NButton, NInput, useMessage } from 'naive-ui'
 import { useUserStore } from '@/stores/useUser'
-import { useUpdateProfile, useMyReviews, useMyFavorites } from '@/api/user'
+import {
+  useUpdateProfile,
+  useMyReviews,
+  useMyFavorites,
+  useRemoveFavorite,
+} from '@/api/user'
 import type { MyReviewItem, MyFavoriteItem } from '@/api/user'
 
 const userStore = useUserStore()
@@ -59,6 +64,24 @@ const formatTime = (str: string) => {
 
 const gotoFilmDetail = (name: string) => {
   if (name) router.push({ name: 'filmDetail', params: { name } })
+}
+const removingFavoriteId = ref<string | null>(null)
+
+const handleRemoveFavorite = async (
+  item: MyFavoriteItem,
+) => {
+  if (!item.movieId || removingFavoriteId.value) return
+  removingFavoriteId.value = item.movieId
+  try {
+    const { execute } = useRemoveFavorite(item.movieId)
+    await execute()
+    message.success('已取消收藏')
+    await loadFavorites()
+  } catch (err: any) {
+    message.error(err?.message || '取消收藏失败，请稍后重试')
+  } finally {
+    removingFavoriteId.value = null
+  }
 }
 const editing = ref(false)
 const formUsername = ref('')
@@ -284,6 +307,16 @@ const handleAvatarChange = (e: Event) => {
                 </div>
                 <div class="text-xs text-gray-500 mt-1">{{ item.info }}</div>
               </div>
+              <NButton
+                size="small"
+                type="error"
+                secondary
+                :loading="removingFavoriteId === item.movieId"
+                :disabled="removingFavoriteId !== null"
+                @click.stop="handleRemoveFavorite(item)"
+              >
+                取消收藏
+              </NButton>
             </div>
 
             <div v-if="!myFavorites.length" class="text-sm text-gray-500">

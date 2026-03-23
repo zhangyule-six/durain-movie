@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { Recommendation } from '@/api/types'
+import type { RecommendByGenresItem } from '@/api/types'
 
 interface Props {
-  items: Recommendation[]
+  items: RecommendByGenresItem[]
   title?: string
 }
 
@@ -12,10 +12,10 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  (e: 'select', rec: Recommendation): void
+  (e: 'select', rec: RecommendByGenresItem): void
 }>()
 
-const handleClick = (rec: Recommendation) => {
+const handleClick = (rec: RecommendByGenresItem) => {
   emit('select', rec)
 }
 </script>
@@ -34,21 +34,24 @@ const handleClick = (rec: Recommendation) => {
     <div class="flex gap-4 overflow-x-auto pb-2">
       <div
         v-for="rec in items"
-        :key="rec.name"
+        :key="rec.id"
         class="w-40 shrink-0 cursor-pointer border-2 border-black rounded-3xl overflow-hidden bg-white/80 hover:-translate-y-1 hover:shadow-xl transition-transform"
         @click="handleClick(rec)"
       >
         <img
           :src="rec.poster"
-          :alt="rec.displayName"
+          :alt="rec.title"
           class="w-full h-44 object-cover"
         />
         <div class="p-3 flex flex-col gap-1">
           <div class="text-xs font-extrabold truncate">
-            {{ rec.displayName }}
+            {{ rec.title }}
           </div>
-          <div class="text-[11px] text-gray-500 truncate">
-            {{ rec.subtitle }}
+          <div
+            v-if="rec.genres?.length"
+            class="text-[10px] text-gray-500 truncate"
+          >
+            {{ rec.genres.join(' / ') }}
           </div>
         </div>
       </div>

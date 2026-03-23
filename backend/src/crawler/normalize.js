@@ -112,8 +112,14 @@ export function normalizeFromMaoyanSearch(rawItem) {
 }
 
 export function normalizeFromWmdbItem(item) {
-  const title = String(item?.name || "").trim();
-  const originalTitle = String(item?.originalName || "").trim();
+  // WMDB 常见：片名在 data[0].name，顶层 name 可能为空
+  const firstDetail = Array.isArray(item?.data) ? item.data[0] : undefined;
+  const title = String(
+    firstDetail?.name || item?.originalName || item?.name || "",
+  ).trim();
+  const originalTitle = String(
+    item?.originalName || firstDetail?.name || item?.name || "",
+  ).trim();
   const yearStr = String(item?.year || "").trim();
   const releaseDate =
     yearStr && /^\d{4}$/.test(yearStr) ? new Date(`${yearStr}-01-01`) : undefined;
@@ -124,7 +130,7 @@ export function normalizeFromWmdbItem(item) {
     poster: pickPosterFromWmdb(item),
     summary: pickSummaryFromWmdb(item),
     genres: parseGenresFromWmdb(item),
-    language: pickLanguageFromWmdb(item),
+    filmLanguage: pickLanguageFromWmdb(item),
     country: pickCountryFromWmdb(item),
     duration: safeNumber(item?.duration, 0),
     cast: pickCastFromWmdb(item),
