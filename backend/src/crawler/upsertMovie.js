@@ -1,5 +1,16 @@
 import Movie from "../models/movie.model.js";
 
+/** MongoDB 全文索引会把字段名 `language` 当作索引语言覆盖，值必须是受支持的语言代码；WMDB 常返回「汉语普通话」等自由文本，会触发 17262。统一写入 filmLanguage。 */
+function normalizeDocLanguageField(doc) {
+  if (!doc || typeof doc !== "object") return doc;
+  const next = { ...doc };
+  if (next.language != null && next.filmLanguage == null) {
+    next.filmLanguage = String(next.language);
+  }
+  delete next.language;
+  return next;
+}
+
 function buildMatchFilter(doc) {
   const or = [];
   if (doc?.maoyanId) or.push({ maoyanId: doc.maoyanId });
@@ -34,6 +45,7 @@ function mergeExternalRatings(next, prev) {
 }
 
 export async function upsertMovie(doc) {
+  doc = normalizeDocLanguageField(doc);
   const filter = buildMatchFilter(doc);
   if (!filter) return null;
 
@@ -43,7 +55,7 @@ export async function upsertMovie(doc) {
     return created;
   }
 
-  const update = { ...doc };
+  const update = normalizeDocLanguageField({ ...doc });
   // 不覆盖已有更好的数据
   if (existing.poster && !update.poster) delete update.poster;
   if (existing.summary && !update.summary) delete update.summary;

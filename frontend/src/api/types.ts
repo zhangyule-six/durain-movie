@@ -70,6 +70,14 @@ export interface MaoyanSearchMovieItem {
   release: string
 }
 
+export interface MaoyanSearchPageResponse {
+  offset: number
+  limit: number
+  count: number
+  hasMore: boolean
+  data: MaoyanSearchMovieItem[]
+}
+
 /**
  * 基础名称项（用于演员、导演、编剧等）
  */
@@ -179,7 +187,8 @@ export interface ReviewBuzz {
   quote: string
 }
 
-export interface Recommendation {
+/** POST /api/movie/:movieId/recommend-by-genres 原始返回；详情页推荐区直接使用该结构展示 */
+export interface RecommendByGenresItem {
   id: string
   title: string
   poster: string
@@ -190,5 +199,5 @@ export interface FilmDetailFull {
   base: FilmDetailBase
   cast: CastMember[]
   buzz: ReviewBuzz[]
-  recommendations: Recommendation[]
+  recommendations: RecommendByGenresItem[]
 }

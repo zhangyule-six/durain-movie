@@ -19,7 +19,8 @@ const movieSchema = new mongoose.Schema(
     maoyanId: { type: String, index: true },
     duration: Number, // 片长（分钟）
     country: String,
-    language: String,
+    /** 对白/语言说明（勿用字段名 language：会与 MongoDB 全文索引的 language 覆盖冲突） */
+    filmLanguage: String,
     externalRatings: {
       douban: Number,
       imdb: Number,

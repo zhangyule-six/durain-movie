@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { Recommendation } from '@/api/types'
+import type { RecommendByGenresItem } from '@/api/types'
 
 interface Props {
-  items: Recommendation[]
+  items: RecommendByGenresItem[]
   title?: string
 }
 
@@ -12,10 +12,10 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  (e: 'select', rec: Recommendation): void
+  (e: 'select', rec: RecommendByGenresItem): void
 }>()
 
-const handleClick = (rec: Recommendation) => {
+const handleClick = (rec: RecommendByGenresItem) => {
   emit('select', rec)
 }
 </script>
@@ -44,8 +44,14 @@ const handleClick = (rec: Recommendation) => {
           class="w-full h-44 object-cover"
         />
         <div class="p-3 flex flex-col gap-1">
-          <div class="text-xs font-extrabold truncate text-center">
+          <div class="text-xs font-extrabold truncate">
             {{ rec.title }}
+          </div>
+          <div
+            v-if="rec.genres?.length"
+            class="text-[10px] text-gray-500 truncate"
+          >
+            {{ rec.genres.join(' / ') }}
           </div>
         </div>
       </div>
