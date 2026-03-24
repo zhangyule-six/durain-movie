@@ -261,6 +261,7 @@ const handleAvatarChange = (e: Event) => {
 
               <div class="flex items-center gap-2 mb-2">
                 <NRate
+                  allow-half
                   readonly
                   :max="5"
                   :default-value="item.score / 2"

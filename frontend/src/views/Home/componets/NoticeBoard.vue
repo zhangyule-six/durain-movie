@@ -47,7 +47,7 @@ const handleToggleFavorite = () => {
     class="rounded-[32px] overflow-hidden w-full h-[420px] relative border-4 border-[#0a0a0a]"
     style="font-family: 'din-round', sans-serif"
   >
-    <img :src="props.image" alt="notice-board" class="w-full h-full object-cover"/>
+    <img :src="props.image ? props.image : '@/assets/images/background.png'" alt="notice-board" class="w-full h-full object-cover"/>
     <div class="w-full h-full">
       <div
         class="rounded-[12px] bg-[#f9da4d] border-2 border-[#000000] 

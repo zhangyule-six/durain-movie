@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NRate, NAvatar, NTag, NButton, NInput, NDivider, useMessage } from 'naive-ui'
+import {
+  NRate,
+  NAvatar,
+  NTag,
+  NButton,
+  useMessage,
+} from 'naive-ui'
 import type {
   FilmDetailFull,
   RecommendByGenresItem,
@@ -13,6 +19,7 @@ import { useAddFavorite } from '@/api/user'
 import type { MovieItem } from '@/api/types'
 import { useRecommendByGenres } from '@/api/newfilm'
 import RecommendationsSection from './components/RecommendationsSection.vue'
+import FilmReviewSection from './components/FilmReviewSection.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,37 +35,20 @@ const currentFilm = ref<FilmDetailFull | undefined>(
   undefined,
 )
 
-// 电影评论相关状态
 const movieId = ref<string | null>(null)
 const addingFavorite = ref(false)
 
-interface FilmReviewItem {
-  _id: string
-  author: { username: string; avatar?: string }
-  score: number
-  content: string
-  likeCount: number
-  commentCount: number
-  createdAt: string
-}
-
-const reviews = ref<FilmReviewItem[]>([])
-const reviewsLoading = ref(false)
-const reviewsError = ref<string | null>(null)
-
-const newReviewScore = ref<number | undefined>(undefined)
-const newReviewContent = ref('')
-
-const reviewInputRef = ref<InstanceType<
-  typeof NInput
+const filmReviewSectionRef = ref<InstanceType<
+  typeof FilmReviewSection
 > | null>(null)
-const reviewSectionRef = ref<HTMLElement | null>(null)
 
 const PLACEHOLDER_ACTOR_AVATAR =
   'https://github.com/shadcn.png'
 
 function buildCastFromMovie(item: MovieItem): CastMember[] {
-  const wrappers = Array.isArray(item.actor) ? item.actor : []
+  const wrappers = Array.isArray(item.actor)
+    ? item.actor
+    : []
   const persons = wrappers.flatMap((w) =>
     Array.isArray(w?.data) ? w.data : [],
   )
@@ -89,7 +79,9 @@ function buildFilmDetailFromWmdb(
   const year =
     Number.parseInt(String(item.year || ''), 10) || 0
   const durationMin = Number(item.duration || 0) || 0
-  const duration = durationMin ? `${durationMin/60} 分钟` : '—'
+  const duration = durationMin
+    ? `${durationMin / 60} 分钟`
+    : '—'
   const region = String(detail?.country || '—')
   const genresRaw = String(detail?.genre || '').trim()
   const genres = genresRaw
@@ -156,7 +148,6 @@ async function fetchFilm() {
       })
       const ensured = await execute()
       movieId.value = ensured._id
-      await loadReviewsForMovie()
       await loadRecommendations()
     } catch (e: any) {
       console.error('ensure movie failed', e)
@@ -202,47 +193,20 @@ const handleAddToLibrary = async () => {
       message.success('已加入收藏')
     }
   } catch (e: any) {
-    message.error(e?.message || '加入收藏失败，请确认已登录')
+    message.error(
+      e?.message || '加入收藏失败，请确认已登录',
+    )
   } finally {
     addingFavorite.value = false
   }
 }
 
-const loadReviewsForMovie = async () => {
-  if (!movieId.value) return
-  reviewsLoading.value = true
-  reviewsError.value = null
-  try {
-    const { execute } = useRequest<{
-      items: FilmReviewItem[]
-    }>({
-      url: `/api/reviews/movie/${movieId.value}`,
-      method: 'GET',
-      body: { limit: 20, page: 1 },
-    })
-    const res = await execute()
-    const items = Array.isArray(res?.items) ? res.items : []
-    // 按热度排序：点赞数 > 评论数 > 时间
-    items.sort((a, b) => {
-      if (b.likeCount !== a.likeCount)
-        return b.likeCount - a.likeCount
-      if (b.commentCount !== a.commentCount)
-        return b.commentCount - a.commentCount
-      return (
-        new Date(b.createdAt).getTime() -
-        new Date(a.createdAt).getTime()
-      )
-    })
-    reviews.value = items
-  } catch (e: any) {
-    reviewsError.value = e?.message || '加载评论失败'
-  } finally {
-    reviewsLoading.value = false
-  }
-}
-
 const loadRecommendations = async () => {
-  if (!movieId.value || !currentFilm.value?.base.genres.length) return
+  if (
+    !movieId.value ||
+    !currentFilm.value?.base.genres.length
+  )
+    return
   try {
     const { execute } = useRecommendByGenres(
       movieId.value,
@@ -258,60 +222,8 @@ const loadRecommendations = async () => {
   }
 }
 
-const handleSubmitReview = async () => {
-  if (!movieId.value || !currentFilm.value) return
-  if (
-    newReviewScore.value === undefined ||
-    !newReviewContent.value.trim()
-  ) {
-    message.warning('请先选择评分并填写评论内容')
-    return
-  }
-  const score = Math.min(
-    Math.max(newReviewScore.value * 2, 1),
-    10,
-  )
-  try {
-    const { execute } = useRequest<
-      FilmReviewItem,
-      {
-        movieId: string
-        score: number
-        content: string
-      }
-    >({
-      url: '/api/reviews',
-      method: 'POST',
-      body: {
-        movieId: movieId.value,
-        score,
-        content: newReviewContent.value.trim(),
-      },
-    })
-    await execute()
-    newReviewContent.value = ''
-    newReviewScore.value = undefined
-    await loadReviewsForMovie()
-    message.success('评论已发布')
-    newReviewScore.value = 0
-  } catch (e: any) {
-    message.error(
-      e?.message || '发布评论失败，请确认已登录',
-    )
-  }
-}
-
 const handleWriteReview = () => {
-  // 滚动并聚焦到评论输入框
-  if (reviewSectionRef.value) {
-    reviewSectionRef.value.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    })
-  }
-  setTimeout(() => {
-    reviewInputRef.value?.focus()
-  }, 400)
+  filmReviewSectionRef.value?.focusComposer()
 }
 
 const gotoRecommendation = (rec: RecommendByGenresItem) => {
@@ -437,6 +349,7 @@ const gotoHome = () => {
           <div class="flex flex-wrap items-center gap-4">
             <div class="flex items-center gap-2">
               <NRate
+                allow-half
                 readonly
                 :max="5"
                 :default-value="currentFilm.base.rating / 2"
@@ -540,116 +453,10 @@ const gotoHome = () => {
         </div>
       </section>
 
-      <!-- 观众评论区 -->
-      <section
-        ref="reviewSectionRef"
-        class="border-2 border-black rounded-3xl bg-white/80 p-5 flex flex-col gap-4"
-      >
-        <div class="flex items-center justify-between">
-          <div class="text-lg font-extrabold">观众评论</div>
-        </div>
-        <!-- 输入区域 -->
-        <div class="flex flex-col gap-3">
-          <div class="flex items-center gap-3">
-            <span class="text-xs text-gray-600"
-              >你的评分：</span
-            >
-            <NRate
-              v-model:value="newReviewScore"
-              :max="5"
-              :size="20"
-            />
-          </div>
-          <NInput
-            ref="reviewInputRef"
-            v-model:value="newReviewContent"
-            type="textarea"
-            placeholder="写下你对这部电影的看法…"
-            :rows="4"
-          />
-          <div class="flex justify-end">
-            <NButton
-              type="primary"
-              size="small"
-              strong
-              round
-              @click="handleSubmitReview"
-            >
-              发表评价
-            </NButton>
-          </div>
-        </div>
-        <NDivider />
-        <!-- 评论列表 -->
-        <div class="flex flex-col gap-3">
-          <div
-            v-if="reviewsLoading"
-            class="text-xs text-gray-500"
-          >
-            正在加载评论…
-          </div>
-          <div
-            v-else-if="reviewsError"
-            class="text-xs text-red-500"
-          >
-            {{ reviewsError }}
-          </div>
-          <template v-else>
-            <div
-              v-if="reviews.length"
-              class="flex flex-col gap-3"
-            >
-              <div
-                v-for="item in reviews"
-                :key="item._id"
-                class="flex items-start gap-3"
-              >
-                <NAvatar
-                  :src="item.author.avatar"
-                  :size="40"
-                  round
-                  class="border border-black shrink-0"
-                />
-                <div class="flex-1 min-w-0">
-                  <div
-                    class="flex items-center justify-between text-xs mb-1"
-                  >
-                    <span
-                      class="font-bold truncate max-w-[120px]"
-                    >
-                      {{ item.author.username }}
-                    </span>
-                    <span
-                      class="text-emerald-600 font-semibold"
-                    >
-                      {{ (item.score).toFixed(1) }}
-                    </span>
-                  </div>
-                  <div
-                    class="text-[11px] text-gray-500 mb-1"
-                  >
-                    {{
-                      new Date(
-                        item.createdAt,
-                      ).toLocaleString()
-                    }}
-                    · 点赞 {{ item.likeCount }} · 回复
-                    {{ item.commentCount }}
-                  </div>
-                  <div
-                    class="text-xs text-gray-700 leading-snug"
-                  >
-                    {{ item.content }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div v-else class="text-xs text-gray-500">
-              暂无评论，快来写下你的第一条评价吧～
-            </div>
-          </template>
-        </div>
-      </section>
+      <FilmReviewSection
+        ref="filmReviewSectionRef"
+        :movie-id="movieId"
+      />
       <!-- 底部：相关推荐 -->
       <RecommendationsSection
         v-if="currentFilm"

@@ -70,13 +70,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="p-8">
+  <div class="p-8 pt-2">
     <div class="flex gap-6 w-full">
       <!-- 左侧：热门影评列表 -->
-      <div class="flex-1 min-w-0">
+      <div class="flex-1 min-w-0 scrollbar-hidden overflow-y-auto h-screen pb-4">
         <div
           ref="listContainerRef"
-          class="scrollbar-hidden overflow-y-auto h-screen pb-4"
+          class=""
         >
           <div class="flex flex-col gap-6">
             <template v-if="(hotReviews || []).length">
@@ -98,7 +98,7 @@ onMounted(() => {
       </div>
 
       <!-- 右侧：高分电影榜单 -->
-      <div class="w-[340px] shrink-0 h-screen">
+      <div class="w-[340px] shrink-0 h-screen fixed right-4 top-18">
         <Ranking :data="rankingData" />
         <div
           v-if="topLoading"

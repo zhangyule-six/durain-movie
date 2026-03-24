@@ -52,7 +52,7 @@ const rankBadgeClass = (rank: number) => {
             {{ item.movieName }}
           </div>
           <div class="mt-1 flex items-center gap-2 min-w-0">
-            <NRate readonly :max="5" :default-value="item.rating" :size="16" />
+            <NRate allow-half readonly :max="5" :default-value="item.rating" :size="16" />
             <span class="text-xs text-gray-600 font-semibold shrink-0">
               {{ item.rating.toFixed(1) }} 分
             </span>

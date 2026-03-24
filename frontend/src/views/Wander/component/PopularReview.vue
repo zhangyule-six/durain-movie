@@ -96,7 +96,7 @@ const handleClickMovie = () => {
         />
         <div class="border-black w-full border-2"></div>
         <div class="flex-1 font-bold bg-yellow-400 flex items-center text-[16px] justify-center">
-          {{ movieName }}
+          {{ movieName.length > 10 ? movieName.slice(0, 10) + '...' : movieName }}
         </div>
       </div>
       <!-- 评论区域 -->
@@ -112,6 +112,7 @@ const handleClickMovie = () => {
         >
           <NRate
             readonly
+            allow-half
             :max="5"
             :default-value="data.score / 2"
             :size="28"

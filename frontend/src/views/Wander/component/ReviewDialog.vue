@@ -2,7 +2,9 @@
 import { computed, ref } from 'vue'
 import { NModal, NInput, NDivider } from 'naive-ui'
 import { useRequest } from '@/api/http'
-import ReviewDialogCommentItem, { type CommentNode } from './ReviewDialogCommentItem.vue'
+import CommentTreeItem, {
+  type CommentNode,
+} from '@/components/CommentTreeItem.vue'
 
 interface Props {
   movieName: string
@@ -118,7 +120,7 @@ defineExpose({
       <!-- 多层级评论 -->
       <div class="flex flex-col gap-3">
         <template v-if="comments.length">
-          <ReviewDialogCommentItem
+          <CommentTreeItem
             v-for="item in displayedComments"
             :key="item._id"
             :node="item"

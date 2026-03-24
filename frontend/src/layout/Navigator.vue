@@ -135,7 +135,7 @@ const handleLoginSuccess = (payload: { userName: string; avatarUrl?: string } | 
           v-model="searchQuery"
           @keyup.enter="handleSearch"
           type="text"
-          placeholder="Find something cool to watch..."
+          placeholder="搜搜看些什么"
           class="flex-1 outline-none text-gray-700 placeholder-gray-400 bg-transparent"
         />
       </div>

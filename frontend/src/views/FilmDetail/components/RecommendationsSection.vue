@@ -22,7 +22,6 @@ const handleClick = (rec: RecommendByGenresItem) => {
 
 <template>
   <section
-    v-if="items.length"
     class="flex flex-col gap-4"
   >
     <div
@@ -31,7 +30,7 @@ const handleClick = (rec: RecommendByGenresItem) => {
       {{ title }}
     </div>
 
-    <div class="flex gap-4 overflow-x-auto pb-2">
+    <div  v-if="items.length" class="flex gap-4 overflow-x-auto pb-2">
       <div
         v-for="rec in items"
         :key="rec.id"
@@ -56,6 +55,7 @@ const handleClick = (rec: RecommendByGenresItem) => {
         </div>
       </div>
     </div>
+    <div v-else class="text-xl font-bold text-gray-500 text-center">暂无相关推荐</div>
   </section>
 </template>
 
