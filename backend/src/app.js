@@ -10,10 +10,13 @@ import movieRoutes from "./routes/movie.route.js";
 import reviewRoutes from "./routes/review.route.js";
 import commentRoutes from "./routes/comment.route.js";
 import notificationRoutes from "./routes/notification.route.js";
+import groupRoutes from "./routes/group.route.js";
+import { initSocket } from "./socket/index.js";
 
 import path from "path";
 const app = express();
 const server = http.createServer(app);
+initSocket(server);
 
 dotenv.config();
 const PORT = process.env.PORT;
@@ -53,9 +56,7 @@ app.use("/api/movie", movieRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/reviews", reviewRoutes);
-app.use("/api/comments", commentRoutes);
-app.use("/api/notifications", notificationRoutes);
+app.use("/api/groups", groupRoutes);
 
 server.listen(PORT, () => {
   console.log("server is running on port " + PORT);

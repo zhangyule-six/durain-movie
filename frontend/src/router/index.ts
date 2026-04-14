@@ -53,6 +53,18 @@ const router = createRouter({
       meta: { showSidebar: true },
     },
     {
+      path: '/community',
+      name: 'community',
+      component: () => import('@/views/Community/index.vue'),
+      meta: { showSidebar: true },
+    },
+    {
+      path: '/community/:groupId',
+      name: 'communityChat',
+      component: () => import('@/views/Community/Chat.vue'),
+      meta: { showSidebar: true },
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('@/views/SettingsPage.vue'),

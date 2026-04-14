@@ -25,6 +25,7 @@ interface MenuItem {
 const myWorldItems: MenuItem[] = [
   { name: 'home', label: '主页', icon: Home },
   { name: 'wander', label: '发现', icon: Compass },
+  { name: 'community', label: '同好社区', icon: Users },
   { name: 'userCenter', label: '个人中心', icon: CirclePlay },
 ]
 

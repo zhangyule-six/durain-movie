@@ -27,9 +27,9 @@ onMounted(() => {
     <SideBar v-if="showSidebar" />
     
     <!-- 内容区域 -->
-    <main 
+    <main
       :class="showSidebar ? 'ml-[260px] w-[calc(100%-260px)]' : 'w-full'" 
-      class="pt-16 min-h-[calc(100vh-4rem)]"
+      class="min-h-[calc(100vh-4rem)] pt-16"
     >
       <slot />
     </main>

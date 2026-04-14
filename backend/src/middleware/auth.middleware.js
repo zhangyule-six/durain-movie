@@ -30,3 +30,27 @@ export const protectRoute = async (req, res, next) => {
     res.status(500).json({ message: "Server error in authentication" });
   }
 };
+
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const bearer = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+    const token = bearer || req.cookies.jwt;
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded?.id) {
+      req.user = null;
+      return next();
+    }
+
+    const user = await User.findById(decoded.id).select("-password");
+    req.user = user || null;
+    next();
+  } catch (err) {
+    req.user = null;
+    next();
+  }
+};

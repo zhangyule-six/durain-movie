@@ -10,6 +10,7 @@ import {
   useRemoveFavorite,
 } from '@/api/user'
 import type { MyReviewItem, MyFavoriteItem } from '@/api/user'
+import { useMyGroups, type GroupItem } from '@/api/community'
 import { updateStoredAccountProfile } from '@/lib/accountStorage'
 
 const userStore = useUserStore()
@@ -42,10 +43,23 @@ const myFavorites = computed<MyFavoriteItem[]>(
   () => favoritesData.value?.items ?? [],
 )
 
+// 我加入的小组
+const {
+  data: myGroupsData,
+  loading: myGroupsLoading,
+  error: myGroupsError,
+  execute: loadMyGroups,
+} = useMyGroups()
+
+const myGroups = computed<GroupItem[]>(
+  () => myGroupsData.value?.items ?? [],
+)
+
 const fetchUserData = () => {
   if (user.value) {
     loadReviews().catch(() => {})
     loadFavorites().catch(() => {})
+    loadMyGroups().catch(() => {})
   }
 }
 
@@ -65,6 +79,11 @@ const formatTime = (str: string) => {
 
 const gotoFilmDetail = (name: string) => {
   if (name) router.push({ name: 'filmDetail', params: { name } })
+}
+
+const gotoCommunityChat = (groupId: string) => {
+  if (!groupId) return
+  router.push({ name: 'communityChat', params: { groupId } })
 }
 const removingFavoriteId = ref<string | null>(null)
 
@@ -167,7 +186,7 @@ const handleAvatarChange = (e: Event) => {
 </script>
 
 <template>
-  <div class="p-8">
+  <div class="box-border min-h-[calc(100vh-4rem)] p-8">
     <div class="mb-6 flex items-center gap-6">
       <div class="flex flex-col items-center gap-2">
         <NAvatar
@@ -327,6 +346,62 @@ const handleAvatarChange = (e: Event) => {
 
             <div v-if="!myFavorites.length" class="text-sm text-gray-500">
               你还没有收藏任何电影。
+            </div>
+          </template>
+        </div>
+      </NTabPane>
+
+      <NTabPane name="groups" tab="我已加入小组">
+        <div class="flex flex-col gap-4 mt-4">
+          <div v-if="!user" class="text-sm text-gray-500">
+            请先登录查看已加入小组。
+          </div>
+          <div v-else-if="myGroupsLoading" class="text-sm text-gray-500">
+            加载中…
+          </div>
+          <div v-else-if="myGroupsError" class="text-sm text-red-500">
+            {{ myGroupsError }}
+          </div>
+          <template v-else>
+            <div
+              v-for="group in myGroups"
+              :key="group._id"
+              class="border-2 border-black rounded-xl p-4 bg-white/80 hover:bg-gray-50 transition-colors"
+            >
+              <div class="flex items-start justify-between gap-3 mb-2">
+                <div class="min-w-0">
+                  <div class="text-base font-bold truncate">{{ group.name }}</div>
+                  <div class="text-sm text-gray-600 mt-1 line-clamp-2">
+                    {{ group.description || '这个小组暂时没有简介。' }}
+                  </div>
+                </div>
+                <div class="text-xs text-gray-500 shrink-0">
+                  {{ group.memberCount }}/99
+                </div>
+              </div>
+
+              <div class="flex flex-wrap gap-2 mb-3">
+                <span
+                  v-for="tag in group.tags || []"
+                  :key="tag"
+                  class="rounded-full bg-[#eef2ff] px-2 py-1 text-xs text-[#4338ca]"
+                >
+                  {{ tag }}
+                </span>
+              </div>
+
+              <div class="flex justify-end">
+                <NButton type="primary" size="small" @click="gotoCommunityChat(group._id)">
+                  进入聊天
+                </NButton>
+              </div>
+            </div>
+
+            <div v-if="!myGroups.length" class="text-sm text-gray-500">
+              你还没有加入任何小组，去同好社区看看吧。
+              <button class="underline ml-1" @click="router.push({ name: 'community' })">
+                去社区
+              </button>
             </div>
           </template>
         </div>
