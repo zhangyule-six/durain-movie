@@ -31,6 +31,13 @@ export const protectRoute = async (req, res, next) => {
   }
 };
 
+export const adminOnly = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({ message: "Forbidden - Admin only" });
+  }
+  next();
+};
+
 export const optionalAuth = async (req, res, next) => {
   try {
     const bearer = req.headers.authorization?.replace(/^Bearer\s+/i, "");

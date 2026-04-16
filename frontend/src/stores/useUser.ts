@@ -13,6 +13,7 @@ export const useUserStore = defineStore('user', {
   }),
   getters: {
     isLoggedIn: (state) => !!state.user,
+    isAdmin: (state) => state.user?.role === 'admin',
     username: (state) => state.user?.username ?? '',
     avatar: (state) => state.user?.avatar ?? '',
   },

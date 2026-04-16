@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from '@/stores/useUser'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -76,7 +77,49 @@ const router = createRouter({
       component: () => import('@/views/SettingsPage.vue'),
       meta: { showSidebar: true },
     },
+    {
+      path: '/admin',
+      component: () => import('@/layout/AdminLayout.vue'),
+      meta: { showSidebar: false, requiresAdmin: true },
+      children: [
+        { path: '', redirect: '/admin/dashboard' },
+        {
+          path: 'dashboard',
+          name: 'adminDashboard',
+          component: () => import('@/views/Admin/Dashboard.vue'),
+        },
+        {
+          path: 'users',
+          name: 'adminUsers',
+          component: () => import('@/views/Admin/UserManage.vue'),
+        },
+        {
+          path: 'movies',
+          name: 'adminMovies',
+          component: () => import('@/views/Admin/MovieManage.vue'),
+        },
+        {
+          path: 'reviews',
+          name: 'adminReviews',
+          component: () => import('@/views/Admin/ReviewManage.vue'),
+        },
+      ],
+    },
   ],
+})
+
+router.beforeEach((to, _from, next) => {
+  const userStore = useUserStore()
+  const isAdmin = userStore.user?.role === 'admin'
+  const isAdminRoute = to.path.startsWith('/admin')
+
+  if (isAdminRoute && !isAdmin) {
+    return next('/')
+  }
+  if (!isAdminRoute && isAdmin) {
+    return next('/admin/dashboard')
+  }
+  next()
 })
 
 export default router

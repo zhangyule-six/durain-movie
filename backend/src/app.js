@@ -11,6 +11,7 @@ import reviewRoutes from "./routes/review.route.js";
 import commentRoutes from "./routes/comment.route.js";
 import notificationRoutes from "./routes/notification.route.js";
 import groupRoutes from "./routes/group.route.js";
+import adminRoutes from "./routes/admin.route.js";
 import { initSocket } from "./socket/index.js";
 
 import path from "path";
@@ -22,16 +23,8 @@ dotenv.config();
 const PORT = process.env.PORT;
 const __dirname = path.resolve();
 
-app.use(express.json()); //使得可用json
-app.use(cookieParser()); //解析cookie
-
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../frontend/dist/index.html")); //在生产环境下，所有未匹配的路由都返回index.html
-  });
-} //express.static中间件来托管dist下html，js，css等静态资源文件
+app.use(express.json());
+app.use(cookieParser());
 
 app.use((req, res, next) => {
   res.setHeader(
@@ -46,7 +39,7 @@ app.use(
     origin:
       process.env.NODE_ENV === "production"
         ? ["http://localhost:8080", "http://localhost"]
-        : "http://localhost:5173",
+        : ["http://localhost:5173", "http://localhost:5174"],
     credentials: true,
   }),
 );
@@ -57,6 +50,14 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/groups", groupRoutes);
+app.use("/api/admin", adminRoutes);
+
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
+  });
+}
 
 server.listen(PORT, () => {
   console.log("server is running on port " + PORT);

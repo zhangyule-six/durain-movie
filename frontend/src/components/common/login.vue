@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import Signup from './signup.vue'
 import SwitchAccountModal from './SwitchAccountModal.vue'
 import { useLogin, useLogout, useCheckAuth } from '@/api/auth'
@@ -30,6 +31,7 @@ const successMessage = ref('')
 const mode = ref<'login' | 'signup'>('login')
 
 const currentUser = ref<AuthUser | null>(null)
+const router = useRouter()
 const userStore = useUserStore()
 const showSwitchModal = ref(false)
 
@@ -92,6 +94,10 @@ const handleSubmit = async () => {
       avatarUrl: res.avatar
     })
     emit('update:visible', false)
+
+    if (res.role === 'admin') {
+      router.push('/admin/dashboard')
+    }
   } catch (_) {
     errorMessage.value =  '登录失败，请稍后重试'
   } finally {
@@ -122,6 +128,7 @@ watch(
 
 const handleLogout = async () => {
   const { execute } = useLogout()
+  const wasAdmin = currentUser.value?.role === 'admin'
   loading.value = true
   try {
     await execute()
@@ -141,6 +148,9 @@ const handleLogout = async () => {
       emit('login-success', { userName: user.username, avatarUrl: user.avatar })
     }
     emit('update:visible', false)
+    if (wasAdmin) {
+      router.push('/')
+    }
   } finally {
     loading.value = false
   }

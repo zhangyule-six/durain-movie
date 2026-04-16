@@ -1,19 +1,25 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useCheckAuth } from '@/api/auth'
 import { useUserStore } from '@/stores/useUser'
 import SideBar from './SideBar.vue'
 import Navigator from './Navigator.vue'
 
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 const showSidebar = computed(() => route.meta.showSidebar !== false)
 
 onMounted(() => {
   useCheckAuth()
     .execute()
-    .then((user) => userStore.setUser(user))
+    .then((user) => {
+      userStore.setUser(user)
+      if (user.role === 'admin') {
+        router.push('/admin/dashboard')
+      }
+    })
     .catch(() => userStore.setUser(null))
 })
 </script>
