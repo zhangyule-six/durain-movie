@@ -48,6 +48,22 @@ export interface MyFavoritesResponse {
   items: MyFavoriteItem[]
 }
 
+export interface UserProfileInfo {
+  _id: string
+  username: string
+  avatar?: string
+  bio?: string
+}
+
+export interface UserReviewsResponse {
+  items: MyReviewItem[]
+  pagination?: { page: number; limit: number; total: number }
+}
+
+export interface UserFavoritesResponse {
+  items: MyFavoriteItem[]
+}
+
 export function useMyReviews(params?: { page?: number; limit?: number }) {
   return useRequest<MyReviewsResponse, { page?: number; limit?: number }>({
     url: '/api/auth/reviews',
@@ -75,6 +91,28 @@ export function useRemoveFavorite(movieId: string) {
   return useRequest<{ message: string }, undefined>({
     url: `/api/auth/favorites/${movieId}`,
     method: 'DELETE',
+  })
+}
+
+export function useUserProfile(userId: string) {
+  return useRequest<UserProfileInfo, undefined>({
+    url: `/api/users/${userId}/profile`,
+    method: 'GET',
+  })
+}
+
+export function useUserReviews(userId: string, params?: { page?: number; limit?: number }) {
+  return useRequest<UserReviewsResponse, { page?: number; limit?: number }>({
+    url: `/api/users/${userId}/reviews`,
+    method: 'GET',
+    body: params ?? { page: 1, limit: 20 },
+  })
+}
+
+export function useUserFavorites(userId: string) {
+  return useRequest<UserFavoritesResponse, undefined>({
+    url: `/api/users/${userId}/favorites`,
+    method: 'GET',
   })
 }
 

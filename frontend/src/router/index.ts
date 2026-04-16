@@ -53,6 +53,12 @@ const router = createRouter({
       meta: { showSidebar: true },
     },
     {
+      path: '/user/:userId',
+      name: 'userProfile',
+      component: () => import('@/views/UserProfile/index.vue'),
+      meta: { showSidebar: true },
+    },
+    {
       path: '/community',
       name: 'community',
       component: () => import('@/views/Community/index.vue'),

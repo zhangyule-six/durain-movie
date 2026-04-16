@@ -54,6 +54,13 @@ export function useMyGroups() {
   });
 }
 
+export function useUserGroups(userId: string) {
+  return useRequest<MyGroupsResponse, undefined>({
+    url: `/api/groups/user/${userId}`,
+    method: "GET",
+  });
+}
+
 export function useJoinGroup(groupId: string) {
   return useRequest<GroupItem, undefined>({
     url: `/api/groups/${groupId}/join`,

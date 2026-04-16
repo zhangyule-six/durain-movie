@@ -8,7 +8,7 @@ import router from '@/router'
 
 export interface HotReviewItem {
   _id: string
-  author: { username: string; avatar?: string }
+  author: { _id?: string; username: string; avatar?: string }
   movie: { id: string; name: string; image?: string } | null
   score: number
   content: string
@@ -60,18 +60,25 @@ const handleClickMovie = () => {
   if (!name) return
   router.push({ name: 'filmDetail', params: { name } })
 }
+
+const handleClickAuthor = () => {
+  const authorId = props.data.author?._id
+  if (!authorId) return
+  router.push({ name: 'userProfile', params: { userId: authorId } })
+}
 </script>
 <template>
   <div class=" flex flex-col items-start px-10 py-4 ">
     <!-- 用户信息 -->
     <div class="flex items-start gap-2 ml-9">
       <NAvatar
-        v-if="data.author.avatar"
+        :class="data.author?._id ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'"
         round
         bordered
         :size="46"
         :src="data.author.avatar || 'https://github.com/shadcn.png'"
         style="border-color: black; border-width: 3px"
+        @click="handleClickAuthor"
       />
 
       <div class="flex flex-col items-start">
@@ -105,7 +112,7 @@ const handleClickMovie = () => {
         <img
           src="@/assets/images/reviewBorder.png"
           alt="图片"
-          class="w-[480px] h-[400px] flex-shrink-0 "
+          class="w-[480px] h-[400px] shrink-0 "
         />
         <div
           class="w-[480px]  flex flex-col items-start gap-2 p-6 absolute top-16 left-6"
