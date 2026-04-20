@@ -12,7 +12,8 @@ import {
 import { useUserStore } from '@/stores/useUser'
 import { useCheckAuth } from '@/api/auth'
 import { useLogout } from '@/api/auth'
-import { removeAccount, getAccounts, setActiveAccount } from '@/lib/accountStorage'
+import { logoutCurrentAccount } from '@/lib/accountStorage'
+import { resetCommunitySocket } from '@/lib/communitySocket'
 import Navigator from './Navigator.vue'
 
 const route = useRoute()
@@ -60,15 +61,12 @@ async function handleLogout() {
   const { execute } = useLogout()
   try {
     await execute()
-    if (userStore.user?._id) {
-      removeAccount(userStore.user._id)
-    }
-    const remaining = getAccounts()
-    setActiveAccount(remaining[0]?.token ?? null)
-    userStore.setUser(null)
-    router.push('/')
   } catch {
+    // API 失败也继续清理本地状态
+  } finally {
+    logoutCurrentAccount()
     userStore.setUser(null)
+    resetCommunitySocket()
     router.push('/')
   }
 }

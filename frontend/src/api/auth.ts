@@ -21,6 +21,7 @@ export function useLogout() {
   return useRequest<void, undefined>({
     url: '/api/auth/logout',
     method: 'POST',
+    credentials: 'include',
   })
 }
 

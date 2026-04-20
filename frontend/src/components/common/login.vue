@@ -9,9 +9,9 @@ import { useUserStore } from '@/stores/useUser'
 import {
   addAccount,
   setActiveAccount,
-  removeAccount,
-  getAccounts,
+  logoutCurrentAccount,
 } from '@/lib/accountStorage'
+import { resetCommunitySocket } from '@/lib/communitySocket'
 
 const props = defineProps<{
   visible: boolean,
@@ -132,26 +132,18 @@ const handleLogout = async () => {
   loading.value = true
   try {
     await execute()
-    if (currentUser.value?._id) {
-      removeAccount(currentUser.value._id)
-    }
-    const remaining = getAccounts()
-    setActiveAccount(remaining[0]?.token ?? null)
-    if (remaining.length === 0) {
-      currentUser.value = null
-      userStore.setUser(null)
-      emit('login-success', null)
-    } else {
-      const user = await useCheckAuth().execute()
-      currentUser.value = user
-      userStore.setUser(user)
-      emit('login-success', { userName: user.username, avatarUrl: user.avatar })
-    }
+  } catch {
+    // API 失败也继续清理本地状态
+  } finally {
+    logoutCurrentAccount()
+    currentUser.value = null
+    userStore.setUser(null)
+    resetCommunitySocket()
+    emit('login-success', null)
     emit('update:visible', false)
     if (wasAdmin) {
       router.push('/')
     }
-  } finally {
     loading.value = false
   }
 }
@@ -180,9 +172,10 @@ const handleUseOtherAccount = async () => {
   try {
     await execute()
   } catch {}
-  setActiveAccount(null)
+  logoutCurrentAccount()
   currentUser.value = null
   userStore.setUser(null)
+  resetCommunitySocket()
   emit('login-success', null)
   email.value = ''
   password.value = ''

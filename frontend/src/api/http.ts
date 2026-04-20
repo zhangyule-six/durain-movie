@@ -7,6 +7,7 @@ export interface RequestOptions<TBody> {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   body?: TBody
   headers?: Record<string, string>
+  credentials?: RequestCredentials
 }
 
 export interface RequestResult<TData> {
@@ -50,7 +51,7 @@ export function useRequest<TData = unknown, TBody = unknown>(
 
       const activeToken = getActiveToken()
       const credentials: RequestCredentials =
-        activeToken || isAbsoluteUrl ? 'omit' : 'include'
+        options.credentials ?? (activeToken || isAbsoluteUrl ? 'omit' : 'include')
       if (activeToken) {
         headers['Authorization'] = 'Bearer ' + activeToken
       }

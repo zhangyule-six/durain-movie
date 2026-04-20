@@ -69,6 +69,19 @@ export function getAccounts(): StoredAccount[] {
   return getAccountStorage().accounts
 }
 
+export function logoutCurrentAccount(): void {
+  const storage = getAccountStorage()
+  const activeToken = storage.activeToken
+  if (activeToken) {
+    const account = storage.accounts.find((a) => a.token === activeToken)
+    if (account) {
+      storage.accounts = storage.accounts.filter((a) => a.uid !== account.uid)
+    }
+  }
+  storage.activeToken = null
+  setAccountStorage(storage)
+}
+
 export function updateStoredAccountProfile(
   uid: string,
   profile: { username?: string; avatar?: string },

@@ -21,6 +21,7 @@
     "jsonwebtoken": "^9.0.3",
     "mangodb": "^1.0.0",
     "mongoose": "^9.2.0",
+    "openai": "^6.34.0",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {

@@ -5,11 +5,13 @@ import { useCheckAuth } from '@/api/auth'
 import { useUserStore } from '@/stores/useUser'
 import SideBar from './SideBar.vue'
 import Navigator from './Navigator.vue'
+import AiChatBubble from '@/components/AiChat/AiChatBubble.vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const showSidebar = computed(() => route.meta.showSidebar !== false)
+const showAiChat = computed(() => !!userStore.user && userStore.user.role !== 'admin')
 
 onMounted(() => {
   useCheckAuth()
@@ -39,5 +41,8 @@ onMounted(() => {
     >
       <slot />
     </main>
+
+    <!-- AI 聊天助手悬浮气泡 -->
+    <AiChatBubble v-if="showAiChat" />
   </div>
 </template>

@@ -229,7 +229,7 @@ const columns: DataTableColumns<AdminMovie> = [
             pageSize: pageSize,
             itemCount: total,
             showSizePicker: true,
-            pageSizes: [10, 20, 30],
+            pageSizes: [20, 30, 50, 100],
             onUpdatePage: handlePageChange,
             onUpdatePageSize: handlePageSizeChange,
           }"
