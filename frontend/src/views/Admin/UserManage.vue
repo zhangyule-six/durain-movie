@@ -2,10 +2,8 @@
 import { ref, h, onMounted, watch } from 'vue'
 import {
   NDataTable,
-  NInput,
   NTag,
-  NButton,
-  NPopconfirm,
+  NSelect,
   NSpin,
   NAvatar,
   useMessage,
@@ -70,10 +68,15 @@ watch(searchQuery, () => {
   }, 300)
 })
 
-async function toggleRole(user: AdminUser) {
-  const newRole = user.role === 'admin' ? 'user' : 'admin'
+const roleOptions = [
+  { label: '普通用户', value: 'user' },
+  { label: '管理员', value: 'admin' },
+]
+
+async function updateRole(user: AdminUser, newRole: string) {
+  if (newRole === user.role) return
   try {
-    const { execute } = useAdminUpdateRole(user._id, newRole)
+    const { execute } = useAdminUpdateRole(user._id, newRole as 'admin' | 'user')
     await execute()
     message.success(`已将 ${user.username} 设为 ${newRole === 'admin' ? '管理员' : '普通用户'}`)
     fetchUsers()
@@ -89,7 +92,7 @@ const columns: DataTableColumns<AdminUser> = [
     render(row) {
       return h('div', { class: 'flex items-center gap-3' }, [
         h(NAvatar, {
-          src: row.avatar,
+          src: row.avatar || 'https://cdn.durianmovie.com/default-avatar.png',
           round: true,
           size: 36,
           bordered: true,
@@ -130,33 +133,17 @@ const columns: DataTableColumns<AdminUser> = [
   {
     title: '操作',
     key: 'action',
-    width: 140,
+    width: 160,
     render(row) {
       const isSelf = userStore.user?._id === row._id
-      if (isSelf) {
-        return h('span', { class: 'text-xs text-gray-400' }, '当前账号')
-      }
-      const isAdmin = row.role === 'admin'
-      return h(
-        NPopconfirm,
-        {
-          onPositiveClick: () => toggleRole(row),
-        },
-        {
-          trigger: () =>
-            h(
-              NButton,
-              {
-                size: 'small',
-                type: isAdmin ? 'error' : 'info',
-                secondary: true,
-              },
-              { default: () => (isAdmin ? '撤销管理员' : '设为管理员') },
-            ),
-          default: () =>
-            `确定将 ${row.username} ${isAdmin ? '降级为普通用户' : '提升为管理员'}？`,
-        },
-      )
+      return h(NSelect, {
+        value: row.role,
+        options: roleOptions,
+        size: 'small',
+        disabled: isSelf,
+        onUpdateValue: (val: string) => updateRole(row, val),
+        style: 'width: 120px',
+      })
     },
   },
 ]
@@ -183,7 +170,7 @@ const columns: DataTableColumns<AdminUser> = [
 
     <!-- Table -->
     <div
-      class="rounded-2xl border-[3px] border-[#0a0a0a] bg-white overflow-hidden"
+      class="rounded-2xl border-[3px] border-[#0a0a0a] bg-white overflow-hidden p-3"
       style="box-shadow: 4px 4px 0 0 rgba(10, 10, 10, 1)"
     >
       <NSpin :show="loading">

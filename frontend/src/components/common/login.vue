@@ -10,6 +10,7 @@ import {
   addAccount,
   setActiveAccount,
   logoutCurrentAccount,
+  deactivateCurrentAccount,
 } from '@/lib/accountStorage'
 import { resetCommunitySocket } from '@/lib/communitySocket'
 
@@ -128,7 +129,6 @@ watch(
 
 const handleLogout = async () => {
   const { execute } = useLogout()
-  const wasAdmin = currentUser.value?.role === 'admin'
   loading.value = true
   try {
     await execute()
@@ -141,9 +141,7 @@ const handleLogout = async () => {
     resetCommunitySocket()
     emit('login-success', null)
     emit('update:visible', false)
-    if (wasAdmin) {
-      router.push('/')
-    }
+    router.push('/')
     loading.value = false
   }
 }
@@ -157,6 +155,12 @@ const handleSwitchTo = async (payload: { uid: string; token: string }) => {
     userStore.setUser(user)
     emit('login-success', { userName: user.username, avatarUrl: user.avatar })
     showSwitchModal.value = false
+    emit('update:visible', false)
+    if (user.role === 'admin') {
+      router.push('/admin/dashboard')
+    } else if (router.currentRoute.value.path.startsWith('/admin')) {
+      router.push('/')
+    }
   } catch {
     currentUser.value = null
     userStore.setUser(null)
@@ -172,13 +176,13 @@ const handleUseOtherAccount = async () => {
   try {
     await execute()
   } catch {}
-  logoutCurrentAccount()
+  deactivateCurrentAccount()
   currentUser.value = null
   userStore.setUser(null)
   resetCommunitySocket()
-  emit('login-success', null)
   email.value = ''
   password.value = ''
+  mode.value = 'login'
 }
 </script>
 

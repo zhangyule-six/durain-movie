@@ -174,7 +174,7 @@ const columns: DataTableColumns<AdminReview> = [
 
     <!-- Table -->
     <div
-      class="rounded-2xl border-[3px] border-[#0a0a0a] bg-white overflow-hidden"
+      class="rounded-2xl border-[3px] border-[#0a0a0a] bg-white overflow-hidden p-3"
       style="box-shadow: 4px 4px 0 0 rgba(10, 10, 10, 1)"
     >
       <NSpin :show="loading">

@@ -69,6 +69,12 @@ export function getAccounts(): StoredAccount[] {
   return getAccountStorage().accounts
 }
 
+export function deactivateCurrentAccount(): void {
+  const storage = getAccountStorage()
+  storage.activeToken = null
+  setAccountStorage(storage)
+}
+
 export function logoutCurrentAccount(): void {
   const storage = getAccountStorage()
   const activeToken = storage.activeToken
