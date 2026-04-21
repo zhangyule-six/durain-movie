@@ -75,7 +75,7 @@ onMounted(() => {
       <!-- 左侧：热门影评列表 -->
       <div class="min-w-0 flex-1 scrollbar-hidden overflow-y-auto h-screen pb-4 pr-[364px]">
         <div ref="listContainerRef">
-          <div class="grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] items-start gap-6">
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] items-start gap-6 pl-2">
             <template v-if="(hotReviews || []).length">
               <PopularReview
                 v-for="(item, index) in hotReviews"
