@@ -28,6 +28,7 @@ const reviewSchema = new mongoose.Schema(
 
 // 复合索引：优化“查看某部电影下的最新影评”查询
 reviewSchema.index({ movie: 1, createdAt: -1 });
+reviewSchema.index({ isPublic: 1, likeCount: -1 });
 
 const Review = mongoose.model("Review", reviewSchema);
 

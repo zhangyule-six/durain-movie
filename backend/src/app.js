@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import compression from "compression";
 import { connectDB } from "./lib/db.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -24,6 +25,7 @@ dotenv.config();
 const PORT = process.env.PORT;
 const __dirname = path.resolve();
 
+app.use(compression());
 app.use(express.json());
 app.use(cookieParser());
 
@@ -55,7 +57,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/ai", aiRoutes);
 
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
+  app.use(express.static(path.join(__dirname, "../frontend/dist"), { maxAge: "7d" }));
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
   });

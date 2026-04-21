@@ -1,4 +1,7 @@
+import { getOrSet } from "../../lib/cache.js";
+
 const WMDB_BASE = "https://api.wmdb.tv/";
+const TTL_SEARCH = 5 * 60 * 1000; // 5 分钟
 
 async function fetchJson(url) {
   if (typeof fetch !== "function") {
@@ -21,13 +24,16 @@ async function fetchJson(url) {
 
 export async function fetchWmdbSearch({ q, actor, year, lang = "Cn", limit = 10, skip = 0 }) {
   if (!q) throw new Error("缺少参数 q");
-  const url = new URL("/api/v1/movie/search", WMDB_BASE);
-  url.searchParams.set("q", String(q));
-  url.searchParams.set("limit", String(limit));
-  url.searchParams.set("skip", String(skip));
-  if (lang) url.searchParams.set("lang", String(lang));
-  if (actor) url.searchParams.set("actor", String(actor));
-  if (year) url.searchParams.set("year", String(year));
-  return await fetchJson(url.toString());
+  const cacheKey = `wmdb:search:${q}:${actor}:${year}:${lang}:${limit}:${skip}`;
+  return getOrSet(cacheKey, () => {
+    const url = new URL("/api/v1/movie/search", WMDB_BASE);
+    url.searchParams.set("q", String(q));
+    url.searchParams.set("limit", String(limit));
+    url.searchParams.set("skip", String(skip));
+    if (lang) url.searchParams.set("lang", String(lang));
+    if (actor) url.searchParams.set("actor", String(actor));
+    if (year) url.searchParams.set("year", String(year));
+    return fetchJson(url.toString());
+  }, TTL_SEARCH);
 }
 
