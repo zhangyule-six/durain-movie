@@ -18,12 +18,14 @@ import { useRequest } from '@/api/http'
 import { useAddFavorite } from '@/api/user'
 import type { MovieItem } from '@/api/types'
 import { useRecommendByGenres } from '@/api/newfilm'
+import { useUserStore } from '@/stores/useUser'
 import RecommendationsSection from './components/RecommendationsSection.vue'
 import FilmReviewSection from './components/FilmReviewSection.vue'
 
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
+const userStore = useUserStore()
 
 const currentName = computed(() =>
   String(route.params.name || ''),
@@ -176,6 +178,7 @@ watch(
 )
 
 const handleAddToLibrary = async () => {
+  if (!userStore.requireLogin()) return
   if (!movieId.value) {
     message.warning('电影信息尚未加载完成，请稍后重试')
     return

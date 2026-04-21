@@ -5,6 +5,8 @@ import { useRequest } from '@/api/http'
 import CommentTreeItem, {
   type CommentNode,
 } from '@/components/CommentTreeItem.vue'
+import { useUserStore } from '@/stores/useUser'
+import { useMessage } from 'naive-ui'
 
 interface Props {
   movieName: string
@@ -16,6 +18,8 @@ const emit = defineEmits<{
   (e: 'comment-added'): void
 }>()
 
+const userStore = useUserStore()
+const message = useMessage()
 const show = ref(false)
 const reviewText = ref('')
 const expanded = ref(false)
@@ -47,6 +51,7 @@ const loadComments = async (reviewId: string) => {
 }
 
 const handleSubmit = async () => {
+  if (!userStore.requireLogin()) return
   if (!reviewText.value.trim() || !currentReviewId.value) return
 
   const payload: {
@@ -75,8 +80,8 @@ const handleSubmit = async () => {
     await loadComments(currentReviewId.value)
     reviewText.value = ''
     emit('comment-added')
-  } catch {
-    // 可接入全局 message
+  } catch (e: any) {
+    message.error(e?.message || '发送失败，请稍后重试')
   }
 }
 

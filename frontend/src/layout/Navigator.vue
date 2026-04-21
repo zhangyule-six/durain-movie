@@ -26,7 +26,6 @@ const notificationCount = computed(
 const showSidebar = computed(() => route.meta.showSidebar !== false)
 const isAdminRoute = computed(() => route.path.startsWith('/admin'))
 
-const showLogin = ref(false)
 const isLogin = computed(() => !!userStore.user)
 const userName = computed(() => userStore.user?.username ?? 'Guest')
 const avatarUrl = computed(() => userStore.user?.avatar ?? 'https://github.com/shadcn.png')
@@ -110,16 +109,14 @@ const markUnread = (id: string) => {
 }
 
 const openLogin = () => {
-  showLogin.value = true
+  userStore.openLoginModal()
 }
 
 const handleLoginSuccess = (payload: { userName: string; avatarUrl?: string } | null) => {
-  if (!payload) {
-    showLogin.value = false
-    return
+  userStore.closeLoginModal()
+  if (payload) {
+    fetchNotifications()
   }
-  showLogin.value = false
-  fetchNotifications()
 }
 </script>
 
@@ -188,9 +185,9 @@ const handleLoginSuccess = (payload: { userName: string; avatarUrl?: string } | 
     </div>
 
     <Login
-      :visible="showLogin"
+      :visible="userStore.showLoginModal"
       mode="login"
-      @update:visible="(v) => (showLogin = v)"
+      @update:visible="(v: boolean) => v ? userStore.openLoginModal() : userStore.closeLoginModal()"
       @login-success="handleLoginSuccess"
     />
   </nav>

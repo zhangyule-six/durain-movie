@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import FlameIcon from '@/assets/svg/flame.svg?component'
 import { StarIcon } from 'lucide-vue-next'
-import { useMessage } from 'naive-ui'
-
-const message = useMessage()
 
 const props = withDefaults(
   defineProps<{
@@ -37,7 +34,7 @@ const handleGotoDetail = () => {
 const handleToggleFavorite = () => {
   if (props.loading) return
   emit('toggleFavorite', props.movieId || undefined)
-  message.success('收藏成功')
+
 }
 
 </script>

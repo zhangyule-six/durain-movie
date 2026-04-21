@@ -5,6 +5,7 @@ import { HeartIcon, MessageCircleCodeIcon, PlusCircle } from 'lucide-vue-next'
 import ReviewDialog from './ReviewDialog.vue'
 import { toggleLikeReview } from '@/api/reviews'
 import router from '@/router'
+import { useUserStore } from '@/stores/useUser'
 
 export interface HotReviewItem {
   _id: string
@@ -23,6 +24,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {})
+const userStore = useUserStore()
 
 const reviewDialogRef = ref<InstanceType<typeof ReviewDialog>>()
 
@@ -36,6 +38,7 @@ const movieName = computed(() => props.data.movie?.name || '未知影片')
 const movieImage = computed(() => props.data.movie?.image || '')
 
 const handleAddReview = () => {
+  if (!userStore.requireLogin()) return
   reviewDialogRef.value?.openDialog(props.data._id)
 }
 
@@ -48,6 +51,7 @@ const handleCommentAdded = () => {
 }
 
 const handleLike = async () => {
+  if (!userStore.requireLogin()) return
   const { execute } = toggleLikeReview(props.data._id)
   const result = await execute()
   if (result) {

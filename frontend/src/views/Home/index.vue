@@ -8,9 +8,11 @@ import FilmRank from './componets/FIlmRank.vue'
 import ComingFilm from './componets/ComingFilm.vue'
 import { useNoticeBoardRecommend } from './useNoticeBoardRecommend'
 import { useAddFavorite } from '@/api/user'
+import { useUserStore } from '@/stores/useUser'
 
 const router = useRouter()
 const message = useMessage()
+const userStore = useUserStore()
 const { loading, recommendedMovie, reload } = useNoticeBoardRecommend()
 
 onMounted(() => {
@@ -24,6 +26,7 @@ const handleGotoDetail = () => {
 }
 
 const handleToggleFavorite = async () => {
+  if (!userStore.requireLogin()) return
   const movieId = recommendedMovie.value?.movieId
   if (!movieId) return
 
@@ -32,7 +35,7 @@ const handleToggleFavorite = async () => {
     await execute()
     message.success('收藏成功')
   } catch {
-    // 忽略收藏错误，保持首页体验流畅
+    message.error('收藏失败，请稍后重试')
   }
 }
 </script>

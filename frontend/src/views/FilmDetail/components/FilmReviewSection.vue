@@ -12,6 +12,7 @@ import { useRequest } from '@/api/http'
 import CommentTreeItem, {
   type CommentNode,
 } from '@/components/CommentTreeItem.vue'
+import { useUserStore } from '@/stores/useUser'
 
 interface FilmReviewItem {
   _id: string
@@ -28,6 +29,7 @@ const props = defineProps<{
 }>()
 
 const message = useMessage()
+const userStore = useUserStore()
 
 const reviews = ref<FilmReviewItem[]>([])
 const reviewsLoading = ref(false)
@@ -136,6 +138,7 @@ function cancelReply() {
 }
 
 async function submitReply() {
+  if (!userStore.requireLogin()) return
   if (!activeReply.value || !replyDraft.value.trim()) {
     message.warning('请填写回复内容')
     return
@@ -173,6 +176,7 @@ async function submitReply() {
 }
 
 async function handleSubmitReview() {
+  if (!userStore.requireLogin()) return
   if (!props.movieId) return
   if (
     newReviewScore.value === undefined ||
