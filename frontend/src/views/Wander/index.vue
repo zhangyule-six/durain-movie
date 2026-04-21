@@ -73,12 +73,9 @@ onMounted(() => {
   <div class="p-8 pt-2">
     <div class="flex gap-6 w-full">
       <!-- 左侧：热门影评列表 -->
-      <div class="flex-1 min-w-0 scrollbar-hidden overflow-y-auto h-screen pb-4">
-        <div
-          ref="listContainerRef"
-          class=""
-        >
-          <div class="flex flex-col gap-6">
+      <div class="min-w-0 flex-1 scrollbar-hidden overflow-y-auto h-screen pb-4 pr-[364px]">
+        <div ref="listContainerRef">
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] items-start gap-6">
             <template v-if="(hotReviews || []).length">
               <PopularReview
                 v-for="(item, index) in hotReviews"
@@ -89,7 +86,7 @@ onMounted(() => {
             </template>
             <div
               v-else-if="!hotLoading && !hotError"
-              class="text-xs text-gray-500 px-10 py-4"
+              class="text-xs text-gray-500 py-4"
             >
               暂无热门评论
             </div>

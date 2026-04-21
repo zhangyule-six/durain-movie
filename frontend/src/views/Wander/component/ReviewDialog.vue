@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { NModal, NInput, NDivider } from 'naive-ui'
+import { computed, ref, watch } from 'vue'
+import { NInput, NButton, NIcon } from 'naive-ui'
+import { Send } from 'lucide-vue-next'
 import { useRequest } from '@/api/http'
 import CommentTreeItem, {
   type CommentNode,
@@ -9,39 +10,39 @@ import { useUserStore } from '@/stores/useUser'
 import { useMessage } from 'naive-ui'
 
 interface Props {
-  movieName: string
+  reviewId: string
+  expanded: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  (e: 'update:expanded', value: boolean): void
   (e: 'comment-added'): void
 }>()
 
 const userStore = useUserStore()
 const message = useMessage()
-const show = ref(false)
 const reviewText = ref('')
-const expanded = ref(false)
+const showAll = ref(false)
+const loaded = ref(false)
 
-// 当前弹窗对应的影评 ID & 回复目标
-const currentReviewId = ref<string | null>(null)
 const replyTarget = ref<CommentNode | null>(null)
-
 const comments = ref<CommentNode[]>([])
 
 const displayedComments = computed(() => {
-  return expanded.value ? comments.value : comments.value.slice(0, 3)
+  return showAll.value ? comments.value : comments.value.slice(0, 3)
 })
 
 const createListRequest = (reviewId: string) =>
   useRequest<CommentNode[], unknown>({
     url: `/api/comments/review/${reviewId}`,
-    method: 'GET'
+    method: 'GET',
   })
 
-const loadComments = async (reviewId: string) => {
-  const { execute } = createListRequest(reviewId)
+const loadComments = async () => {
+  if (!props.reviewId) return
+  const { execute } = createListRequest(props.reviewId)
   try {
     const list = await execute()
     comments.value = Array.isArray(list) ? list : []
@@ -50,145 +51,131 @@ const loadComments = async (reviewId: string) => {
   }
 }
 
+watch(
+  () => props.expanded,
+  (open) => {
+    if (open && !loaded.value) {
+      loaded.value = true
+      loadComments()
+    }
+  },
+)
+
+const handleReply = (node: CommentNode) => {
+  replyTarget.value = node
+}
+
+const clearReplyTarget = () => {
+  replyTarget.value = null
+}
+
 const handleSubmit = async () => {
   if (!userStore.requireLogin()) return
-  if (!reviewText.value.trim() || !currentReviewId.value) return
+  if (!reviewText.value.trim() || !props.reviewId) return
 
   const payload: {
     reviewId: string
     content: string
     parentCommentId?: string
-    replyToUserId?: string
   } = {
-    reviewId: currentReviewId.value,
-    content: reviewText.value.trim()
+    reviewId: props.reviewId,
+    content: reviewText.value.trim(),
   }
 
   if (replyTarget.value) {
     payload.parentCommentId = replyTarget.value._id
-    // 被回复用户由后端通过 parentComment 推断
   }
 
   try {
-    // 针对本次提交创建请求（useRequest 的 execute 无参数，因此 body 放在 options 里）
     const { execute } = useRequest<CommentNode, typeof payload>({
       url: '/api/comments',
       method: 'POST',
-      body: payload
+      body: payload,
     })
     await execute()
-    await loadComments(currentReviewId.value)
+    await loadComments()
     reviewText.value = ''
+    replyTarget.value = null
     emit('comment-added')
   } catch (e: any) {
     message.error(e?.message || '发送失败，请稍后重试')
   }
 }
-
-const openDialog = (reviewId: string, target?: CommentNode | null) => {
-  currentReviewId.value = reviewId
-  replyTarget.value = target || null
-  show.value = true
-  loadComments(reviewId)
-}
-
-const closeDialog = () => {
-  show.value = false
-  replyTarget.value = null
-}
-
-const handleSubmitWithoutClose = () => {
-  handleSubmit()
-  return false
-}
-
-defineExpose({
-  openDialog,
-  closeDialog
-})
 </script>
 
 <template>
-  <NModal
-    v-model:show="show"
-    :mask-closable="true"
-    preset="dialog"
-    positive-text="发送"
-    negative-text="关闭"
-    @positive-click="handleSubmitWithoutClose"
-    @negative-click="closeDialog"
-    class="dialog-wrapper"
-  >
-    <div
-      class="flex flex-col gap-4 border-4 border-black rounded-lg p-4 bg-white max-h-[70vh] overflow-y-auto"
-    >
-      <!-- 多层级评论 -->
-      <div class="flex flex-col gap-3">
-        <template v-if="comments.length">
-          <CommentTreeItem
-            v-for="item in displayedComments"
-            :key="item._id"
-            :node="item"
-            @reply="(node) => openDialog(currentReviewId!, node)"
-          />
-        </template>
-        <div v-else class="text-xs text-gray-500">还没有回复，快来抢沙发吧～</div>
+  <div class="comment-collapse" :class="{ 'is-open': expanded }">
+    <div class="overflow-hidden">
+      <div
+        v-if="loaded"
+        class="mt-3 flex flex-col gap-3 rounded-lg border-2 border-dashed border-black/20 bg-[#faf9f6] p-3"
+      >
+        <!-- 评论列表 -->
+        <div class="flex flex-col gap-2">
+          <template v-if="comments.length">
+            <CommentTreeItem
+              v-for="item in displayedComments"
+              :key="item._id"
+              :node="item"
+              @reply="handleReply"
+            />
+          </template>
+          <div v-else class="py-2 text-center text-xs text-gray-400">
+            还没有回复，快来抢沙发吧～
+          </div>
 
-        <div v-if="comments.length > 3" class="flex justify-center pt-2">
           <button
-            @click="expanded = !expanded"
-            class="expand-button"
+            v-if="comments.length > 3"
+            class="self-center text-xs text-gray-500 transition-colors hover:text-yellow-600"
+            @click="showAll = !showAll"
           >
-            {{ expanded ? '...收起' : '...展开更多回复' }}
+            {{ showAll ? '收起' : `查看全部 ${comments.length} 条回复` }}
           </button>
         </div>
-      </div>
 
-      <NDivider />
-
-      <!-- 输入框 -->
-      <div>
-        <label class="text-sm font-bold mb-2 block text-yellow-600">
-          {{ replyTarget ? `回复 @${replyTarget.author.username}` : '写下你的回复吧~' }}
-        </label>
-        <NInput
-          v-model:value="reviewText"
-          type="textarea"
-          placeholder="分享你对这部电影的看法..."
-          :rows="4"
-        />
+        <!-- 回复输入 -->
+        <div class="flex flex-col gap-1.5 border-t border-black/10 pt-3">
+          <div
+            v-if="replyTarget"
+            class="flex items-center gap-1 text-xs text-yellow-700"
+          >
+            <span>回复 @{{ replyTarget.author.username }}</span>
+            <button class="ml-1 text-gray-400 hover:text-gray-600" @click="clearReplyTarget">✕</button>
+          </div>
+          <div class="flex items-end gap-2">
+            <NInput
+              v-model:value="reviewText"
+              type="textarea"
+              :autosize="{ minRows: 1, maxRows: 3 }"
+              placeholder="写下你的回复..."
+              size="small"
+              @keydown.enter.exact.prevent="handleSubmit"
+            />
+            <NButton
+              type="primary"
+              size="small"
+              :disabled="!reviewText.trim()"
+              @click="handleSubmit"
+            >
+              <template #icon>
+                <NIcon><Send :size="14" /></NIcon>
+              </template>
+            </NButton>
+          </div>
+        </div>
       </div>
     </div>
-  </NModal>
+  </div>
 </template>
 
 <style scoped>
-/* 黑框样式，与系统统一黑边+黄色主色 */
-::deep(.n-dialog__content) {
-  border: 4px solid black;
+.comment-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease-out;
 }
 
-::deep(.n-button--primary) {
-  background-color: #fbbf24 !important;
-  border-color: #fbbf24 !important;
-  color: black !important;
-}
-
-::deep(.n-button--primary:hover) {
-  background-color: #f59e0b !important;
-  border-color: #f59e0b !important;
-}
-
-.expand-button {
-  color: #666;
-  background: none;
-  border: none;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.expand-button:hover {
-  color: #fbbf24 !important;
+.comment-collapse.is-open {
+  grid-template-rows: 1fr;
 }
 </style>

@@ -26,7 +26,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {})
 const userStore = useUserStore()
 
-const reviewDialogRef = ref<InstanceType<typeof ReviewDialog>>()
+const commentExpanded = ref(false)
 
 const displayUsername = computed(() => props.data.author.username || '匿名用户')
 const displayTimeAgo = computed(() => {
@@ -37,9 +37,9 @@ const displayTimeAgo = computed(() => {
 const movieName = computed(() => props.data.movie?.name || '未知影片')
 const movieImage = computed(() => props.data.movie?.image || '')
 
-const handleAddReview = () => {
+const handleToggleComments = () => {
   if (!userStore.requireLogin()) return
-  reviewDialogRef.value?.openDialog(props.data._id)
+  commentExpanded.value = !commentExpanded.value
 }
 
 const handleCommentAdded = () => {
@@ -71,108 +71,101 @@ const handleClickAuthor = () => {
   router.push({ name: 'userProfile', params: { userId: authorId } })
 }
 </script>
+
 <template>
-  <div class=" flex flex-col items-start px-10 py-4 ">
+  <div class="flex w-full flex-col self-start">
     <!-- 用户信息 -->
-    <div class="flex items-start gap-2 ml-9">
+    <div class="mb-2 flex items-center gap-2 px-1">
       <NAvatar
         :class="data.author?._id ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'"
         round
         bordered
-        :size="46"
+        :size="38"
         :src="data.author.avatar || 'https://github.com/shadcn.png'"
-        style="border-color: black; border-width: 3px"
+        style="border-color: black; border-width: 2px"
         @click="handleClickAuthor"
       />
-
-      <div class="flex flex-col items-start">
-        <div class="text-sm font-bold">{{ displayUsername }}</div>
+      <div class="flex flex-col">
+        <div class="text-sm font-bold leading-tight">{{ displayUsername }}</div>
         <div class="text-xs text-gray-500">{{ displayTimeAgo }}</div>
       </div>
     </div>
 
-    <!-- 评论信息 -->
-    <div class="flex items-center gap-3">
-      <!-- 电影展示 -->
+    <!-- 主内容：海报 + 评论 -->
+    <div class="flex gap-3">
+      <!-- 电影海报 -->
       <div
-        :class="index % 2 === 0 ? '-rotate-3' : 'rotate-3'"
-        class="flex flex-col flex-1 border-black rounded-md border-4 w-[200px] h-[300px] cursor-pointer" 
+        :class="index % 2 === 0 ? '-rotate-2' : 'rotate-2'"
+        class="flex w-[35%] max-w-[160px] shrink-0 cursor-pointer flex-col overflow-hidden rounded-md border-[3px] border-black"
         @click="handleClickMovie"
       >
         <img
           v-if="movieImage"
           :src="movieImage"
-          alt="图片"
-          class="w-full h-[85%] object-cover bg-center"
+          alt="海报"
+          class="aspect-2/3 w-full object-cover"
         />
-        <div class="border-black w-full border-2"></div>
-        <div class="flex-1 font-bold bg-yellow-400 flex items-center text-[16px] justify-center">
-          {{ movieName.length > 10 ? movieName.slice(0, 10) + '...' : movieName }}
+        <div class="border-t-2 border-black bg-yellow-400 px-1 py-1.5 text-center text-xs font-bold leading-tight">
+          {{ movieName.length > 8 ? movieName.slice(0, 8) + '…' : movieName }}
         </div>
       </div>
+
       <!-- 评论区域 -->
-      <div class="flex flex-col items-start -mt-6">
-        <div class="relative">
-        <img
-          src="@/assets/images/reviewBorder.png"
-          alt="图片"
-          class="w-[480px] h-[400px] shrink-0 "
-        />
-        <div
-          class="w-[480px]  flex flex-col items-start gap-2 p-6 absolute top-16 left-6"
-        >
+      <div class="flex min-w-0 flex-1 flex-col">
+        <div class="flex flex-1 flex-col gap-2 rounded-lg border-[3px] border-black bg-white p-4">
           <NRate
             readonly
             allow-half
             :max="5"
             :default-value="data.score / 2"
-            :size="28"
+            :size="22"
           />
-          <div
-            class="text-[22px] font-bold w-[90%] mt-2 "
-          >
+          <div class="mt-1 text-sm font-bold leading-relaxed line-clamp-6">
             {{ data.content }}
           </div>
         </div>
+
+        <!-- 操作按钮 -->
+        <div class="mt-2 flex items-center gap-3">
+          <NButton
+            v-if="data.likeCount !== undefined"
+            bordered
+            round
+            size="small"
+            color="#FF8AAE"
+            @click="handleLike"
+          >
+            <template #icon>
+              <NIcon><HeartIcon :size="14" /></NIcon>
+            </template>
+            {{ data.likeCount || '点赞' }}
+          </NButton>
+          <NButton
+            bordered
+            round
+            size="small"
+            color="#8a2be2"
+            @click="handleToggleComments"
+          >
+            <template #icon>
+              <NIcon><MessageCircleCodeIcon :size="14" /></NIcon>
+            </template>
+            {{ data.commentCount || '回复' }}
+          </NButton>
+          <NButton tertiary circle size="small" color="#8a2be2">
+            <template #icon>
+              <NIcon><PlusCircle :size="20" /></NIcon>
+            </template>
+          </NButton>
+        </div>
       </div>
-      <!-- 按钮列 -->
-      <div class="flex items-baseline gap-4 pl-10 -mt-8">
-        <NButton
-          v-if="data.likeCount !== undefined"
-          bordered
-          round
-          size="large"
-          color="#FF8AAE"
-          @click="handleLike"
-        >
-          <template #icon>
-            <Nicon><HeartIcon :size="18" /></Nicon>
-          </template>
-           {{ data.likeCount || '点赞'}}
-        </NButton>
-        <NButton bordered round size="large" color="#8a2be2" @click="handleAddReview">
-          <template #icon>
-          <Nicon><MessageCircleCodeIcon :size="18" /></Nicon>
-        </template>
-          {{data.commentCount || '回复'}}
-        </NButton>
-        <NButton tertiary circle size="large" color="#8a2be2">
-          <template #icon>
-          <Nicon><PlusCircle :size="32" /></Nicon>
-        </template>
-        </NButton>
-      </div>
-      </div>
-      
     </div>
 
-    <!-- 评论对话框 -->
+    <!-- 内联评论区 -->
     <ReviewDialog
-      ref="reviewDialogRef"
-      :movie-name="movieName"
+      v-model:expanded="commentExpanded"
+      :review-id="data._id"
       @comment-added="handleCommentAdded"
     />
   </div>
 </template>
-
-
