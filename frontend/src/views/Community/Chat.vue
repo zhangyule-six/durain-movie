@@ -30,6 +30,24 @@ const authReady = ref(false)
 
 const currentUserId = computed(() => userStore.user?._id || '')
 
+function formatMessageTime(raw: string | Date) {
+  const d = new Date(raw)
+  const now = new Date()
+  const time = d.toLocaleTimeString()
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  const sameYear =
+    d.getFullYear() === now.getFullYear()
+  if (sameDay){
+    return time
+  } else if (!sameYear) {
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${time}`
+  }
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${time}`
+}
+
 function isMine(item: GroupMessageItem) {
   return item.sender?._id === currentUserId.value
 }
@@ -204,7 +222,7 @@ onUnmounted(() => {
                   :class="isMine(item) ? 'text-right' : 'text-left'"
                 >
                   {{ item.sender?.username || '匿名用户' }} ·
-                  {{ new Date(item.createdAt).toLocaleTimeString() }}
+                  {{ formatMessageTime(item.createdAt) }}
                 </div>
                 <div
                   class="rounded-2xl px-3 py-2 text-sm leading-6 wrap-break-word"
