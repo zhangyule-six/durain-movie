@@ -1,5 +1,20 @@
 import { ref } from 'vue'
 import { useFollowUser, useUnfollowUser, useCheckFollowing } from '@/api/follow'
+import { useUserStore } from '@/stores/useUser'
+
+function updateFollowingCount(delta: number) {
+  const userStore = useUserStore()
+  const user = userStore.user
+  if (!user) return
+  userStore.setUser({
+    ...user,
+    stats: {
+      following: Math.max(0, (user.stats?.following ?? 0) + delta),
+      followers: user.stats?.followers ?? 0,
+      reviews: user.stats?.reviews ?? 0,
+    },
+  })
+}
 
 export function useFollow(targetUserId: string) {
   const isFollowing = ref(false)
@@ -23,6 +38,7 @@ export function useFollow(targetUserId: string) {
       const { execute } = useFollowUser(targetUserId)
       await execute()
       isFollowing.value = true
+      updateFollowingCount(1)
     } finally {
       loading.value = false
     }
@@ -35,6 +51,7 @@ export function useFollow(targetUserId: string) {
       const { execute } = useUnfollowUser(targetUserId)
       await execute()
       isFollowing.value = false
+      updateFollowingCount(-1)
     } finally {
       loading.value = false
     }

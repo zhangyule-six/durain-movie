@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { NRate } from 'naive-ui'
 import type { ReviewData } from '../config'
+
+const router = useRouter()
+
+const gotoDetail = (name: string) => {
+  if (name) router.push({ name: 'filmDetail', params: { name } })
+}
 
 interface Props {
   data: ReviewData[]
@@ -32,7 +39,8 @@ const rankBadgeClass = (rank: number) => {
       <div
         v-for="(item, index) in topData"
         :key="item.id"
-        class="flex items-center gap-3"
+        class="flex items-center gap-3 cursor-pointer rounded-lg px-2 py-1 -mx-2 transition-colors hover:bg-gray-50"
+        @click="gotoDetail(item.movieName)"
       >
         <div
           class="w-8 h-8 rounded-full flex items-center justify-center font-extrabold border-2 border-black shrink-0"
