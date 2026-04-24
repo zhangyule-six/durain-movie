@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { NAvatar, NRate, NButton, NIcon } from 'naive-ui'
-import { HeartIcon, MessageCircleCodeIcon, PlusCircle } from 'lucide-vue-next'
+import { computed, ref, onMounted } from 'vue'
+import { NAvatar, NRate, NButton, NIcon, useDialog } from 'naive-ui'
+import { HeartIcon, MessageCircleCodeIcon, PlusCircle, CheckCircle2 } from 'lucide-vue-next'
 import ReviewDialog from './ReviewDialog.vue'
 import { toggleLikeReview } from '@/api/reviews'
 import router from '@/router'
 import { useUserStore } from '@/stores/useUser'
+import { useFollow } from '@/composables/useFollow'
 
 export interface HotReviewItem {
   _id: string
@@ -25,6 +26,49 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {})
 const userStore = useUserStore()
+const dialog = useDialog()
+
+const isOwnReview = computed(() => {
+  return userStore.user?._id === props.data.author?._id
+})
+
+const authorId = computed(() => props.data.author?._id || '')
+
+const {
+  isFollowing,
+  loading: followLoading,
+  checkStatus: checkFollowStatus,
+} = useFollow(authorId.value)
+
+onMounted(() => {
+  if (userStore.isLoggedIn && authorId.value && !isOwnReview.value) {
+    checkFollowStatus()
+  }
+})
+
+const handleFollow = () => {
+  if (!userStore.requireLogin()) return
+  if (!authorId.value) return
+
+  if (isFollowing.value) {
+    dialog.warning({
+      title: '取消关注',
+      content: `确定取消关注 ${props.data.author.username} 吗？`,
+      positiveText: '确定',
+      negativeText: '取消',
+      onPositiveClick: async () => {
+        const { unfollow } = useFollow(authorId.value)
+        await unfollow()
+        isFollowing.value = false
+      },
+    })
+  } else {
+    const { follow } = useFollow(authorId.value)
+    follow().then(() => {
+      isFollowing.value = true
+    })
+  }
+}
 
 const commentExpanded = ref(false)
 
@@ -152,9 +196,20 @@ const handleClickAuthor = () => {
             </template>
             {{ data.commentCount || '回复' }}
           </NButton>
-          <NButton tertiary circle size="small" color="#8a2be2">
+          <NButton
+            v-if="!isOwnReview && authorId"
+            tertiary
+            circle
+            size="small"
+            :color="isFollowing ? '#22c55e' : '#8a2be2'"
+            :disabled="followLoading"
+            @click="handleFollow"
+          >
             <template #icon>
-              <NIcon><PlusCircle :size="20" /></NIcon>
+              <NIcon>
+                <CheckCircle2 v-if="isFollowing" :size="20" />
+                <PlusCircle v-else :size="20" />
+              </NIcon>
             </template>
           </NButton>
         </div>

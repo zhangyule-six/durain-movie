@@ -14,6 +14,7 @@ import notificationRoutes from "./routes/notification.route.js";
 import groupRoutes from "./routes/group.route.js";
 import adminRoutes from "./routes/admin.route.js";
 import aiRoutes from "./routes/ai.route.js";
+import followRoutes from "./routes/follow.route.js";
 import { initSocket } from "./socket/index.js";
 
 import path from "path";
@@ -55,6 +56,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/users", followRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist"), { maxAge: "7d" }));

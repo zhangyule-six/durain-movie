@@ -12,12 +12,39 @@ import {
 import type { MyReviewItem, MyFavoriteItem } from '@/api/user'
 import { useMyGroups, type GroupItem } from '@/api/community'
 import { updateStoredAccountProfile } from '@/lib/accountStorage'
+import FollowDrawer from './FollowDrawer.vue'
 
 const userStore = useUserStore()
 const router = useRouter()
 const message = useMessage()
 
 const user = computed(() => userStore.user)
+
+const drawerVisible = ref(false)
+const drawerType = ref<'following' | 'followers'>('following')
+
+const openFollowDrawer = (type: 'following' | 'followers') => {
+  if (!user.value) {
+    message.warning('请先登录')
+    return
+  }
+  drawerType.value = type
+  drawerVisible.value = true
+}
+
+const handleStatsChanged = () => {
+  if (!user.value) return
+  const currentStats = user.value.stats ?? { following: 0, followers: 0, reviews: 0 }
+  const delta = drawerType.value === 'following' ? -1 : 1
+  userStore.setUser({
+    ...user.value,
+    stats: {
+      ...currentStats,
+      following: Math.max(0, currentStats.following + (drawerType.value === 'following' ? delta : 0)),
+      followers: Math.max(0, currentStats.followers + (drawerType.value === 'followers' ? delta : 0)),
+    },
+  })
+}
 
 // 我的评价
 const {
@@ -222,6 +249,23 @@ const handleAvatarChange = (e: Event) => {
           <div class="text-sm text-gray-500 mt-1 truncate">
             {{ user?.bio || '查看我的评价与收藏' }}
           </div>
+          <div v-if="user" class="mt-2 flex items-center gap-4 text-sm">
+            <span
+              class="cursor-pointer hover:underline"
+              @click="openFollowDrawer('following')"
+            >
+              <span class="font-bold text-black">{{ user.stats?.following ?? 0 }}</span>
+              <span class="text-gray-500 ml-1">关注</span>
+            </span>
+            <span class="text-gray-300">|</span>
+            <span
+              class="cursor-pointer hover:underline"
+              @click="openFollowDrawer('followers')"
+            >
+              <span class="font-bold text-black">{{ user.stats?.followers ?? 0 }}</span>
+              <span class="text-gray-500 ml-1">粉丝</span>
+            </span>
+          </div>
         </template>
 
         <div v-else class="flex flex-col gap-3 max-w-md">
@@ -407,6 +451,14 @@ const handleAvatarChange = (e: Event) => {
         </div>
       </NTabPane>
     </NTabs>
+
+    <FollowDrawer
+      v-if="user"
+      v-model:visible="drawerVisible"
+      :type="drawerType"
+      :user-id="user._id"
+      @stats-changed="handleStatsChanged"
+    />
   </div>
 </template>
 
